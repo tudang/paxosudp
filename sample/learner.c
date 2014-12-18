@@ -30,6 +30,7 @@
 #include <stdio.h>
 #include <evpaxos.h>
 #include <signal.h>
+#include <time.h>
 
 void
 handle_sigint(int sig, short ev, void* arg)
@@ -42,7 +43,17 @@ handle_sigint(int sig, short ev, void* arg)
 static void
 deliver(unsigned iid, char* value, size_t size, void* arg)
 {
-	printf("Delivered value: %s\n", value);
+        char buffer[30];
+        struct timeval tv;
+        time_t curtime;
+        
+        gettimeofday(&tv, NULL); 
+        curtime=tv.tv_sec;
+
+        strftime(buffer,30,"%m-%d-%Y  %T.",localtime(&curtime));
+        printf("%s%ld\n",buffer,tv.tv_usec);
+
+	printf("%s\n", value);
 }
 
 int

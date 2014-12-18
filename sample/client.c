@@ -35,12 +35,22 @@
 #include <string.h>
 #include <signal.h>
 #include <event2/event.h>
+#include <sys/time.h>
 
-#define MAX_VALUE_SIZE 8192
+#define MAX_VALUE_SIZE 64*1024
+
+
+struct client_value
+{
+  struct timeval t;
+  size_t size;
+  char value[MAX_VALUE_SIZE];
+};
 
 struct stats
 {
-	int delivered;
+  int avg_latency;
+  int delivered;
 };
 
 struct client
@@ -78,16 +88,39 @@ random_string(char *s, const int len)
 static void
 client_submit_value(struct client* c)
 {
-	char value[MAX_VALUE_SIZE];
-	random_string(value, c->value_size);
-	paxos_submit(c->bev, value, c->value_size);
+  struct client_value v;
+  
+  gettimeofday(&v.t, NULL);
+  v.size = c->value_size;
+  random_string(v.value, v.size);
+
+  int vsize = sizeof(size_t) + sizeof(struct timeval) + v.size;
+  paxos_submit(c->bev, (char*) &v, vsize);
+}
+
+
+// Returns t2 - t1 in microseconds.
+long timeval_diff(struct timeval* t1, struct timeval* t2) {
+  long us;
+  us = (t2->tv_sec - t1->tv_sec) * 1e6;
+  if (us < 0) return 0;
+  us += (t2->tv_usec - t1->tv_usec);
+  return us;
 }
 
 static void
 on_deliver(unsigned iid, char* value, size_t size, void* arg)
 {
 	struct client* c = arg;
+	struct client_value* v = (struct client_value*)value;
+	struct timeval tv;
+	gettimeofday(&tv, NULL);
+
+
+	long latency = timeval_diff(&v->t, &tv);
 	c->stats.delivered++;
+	c->stats.avg_latency = c->stats.avg_latency + ((latency - c->stats.avg_latency) / c->stats.delivered);
+	
 	client_submit_value(c);
 }
 
@@ -95,9 +128,10 @@ static void
 on_stats(evutil_socket_t fd, short event, void *arg)
 {
 	struct client* c = arg;
-	double mbps = (double)(c->stats.delivered*c->value_size*8) / (1024*1024);
-	printf("%d value/sec, %.2f Mbps\n", c->stats.delivered, mbps);
+	double mbps = (double)((c->stats.delivered*c->value_size*8)+(sizeof(struct timeval)+sizeof(size_t)*8)) / (1024*1024);
+	printf("%d value/sec, %.2f Mbps, %d avg latency us\n", c->stats.delivered, mbps, c->stats.avg_latency);
 	c->stats.delivered = 0;
+	c->stats.avg_latency = 0;
 	event_add(c->stats_ev, &c->stats_interval);
 }
 

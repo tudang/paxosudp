@@ -36,6 +36,7 @@
 #include <signal.h>
 #include <event2/event.h>
 #include <sys/time.h>
+#include <stdio.h>
 
 #define MAX_VALUE_SIZE 64*1024
 
@@ -64,13 +65,13 @@ struct client
 	struct timeval stats_interval;
 	struct event* sig;
 	struct evlearner* learner;
+  FILE* output;
 };
 
 static void
 handle_sigint(int sig, short ev, void* arg)
 {
 	struct event_base* base = arg;
-	printf("Caught signal %d\n", sig);
 	event_base_loopexit(base, NULL);
 }
 
@@ -115,11 +116,12 @@ on_deliver(unsigned iid, char* value, size_t size, void* arg)
 	struct client_value* v = (struct client_value*)value;
 	struct timeval tv;
 	gettimeofday(&tv, NULL);
-
-
 	long latency = timeval_diff(&v->t, &tv);
-	c->stats.delivered++;
-	c->stats.avg_latency = c->stats.avg_latency + ((latency - c->stats.avg_latency) / c->stats.delivered);
+        long dt = tv.tv_sec - c->stats_interval.tv_sec;
+        if (dt == 60) raise(SIGINT);
+	fprintf(c->output, "%d,%ld,%ld,%ld\n", c->outstanding, v->size, dt, latency);
+	//	c->stats.delivered++;
+	//	c->stats.avg_latency = c->stats.avg_latency + ((latency - c->stats.avg_latency) / c->stats.delivered);
 	
 	client_submit_value(c);
 }
@@ -163,7 +165,7 @@ connect_to_proposer(struct client* c, const char* config, int proposer_id)
 }
 
 static struct client*
-make_client(const char* config, int proposer_id, int outstanding, int value_size)
+make_client(const char* config, int proposer_id, int outstanding, int value_size, int client_id)
 {
 	struct client* c;
 	c = malloc(sizeof(struct client));
@@ -177,15 +179,18 @@ make_client(const char* config, int proposer_id, int outstanding, int value_size
 	c->value_size = value_size;
 	c->outstanding = outstanding;
 	
-	c->stats_interval = (struct timeval){1, 0};
-	c->stats_ev = evtimer_new(c->base, on_stats, c);
-	event_add(c->stats_ev, &c->stats_interval);
+	gettimeofday(&c->stats_interval, NULL); // = (struct timeval){1, 0};
+	//	c->stats_ev = evtimer_new(c->base, on_stats, c);
+	//	event_add(c->stats_ev, &c->stats_interval);
 	
 	paxos_config.learner_catch_up = 0;
 	c->learner = evlearner_init(config, on_deliver, c, c->base);
 	
 	c->sig = evsignal_new(c->base, SIGINT, handle_sigint, c->base);
 	evsignal_add(c->sig, NULL);
+        char outname[20];
+        sprintf (outname, "data-client-%d.csv", client_id);
+	c->output = fopen(outname, "w");
 	
 	return c;
 }
@@ -194,7 +199,7 @@ static void
 client_free(struct client* c)
 {
 	bufferevent_free(c->bev);
-	event_free(c->stats_ev);
+	//	event_free(c->stats_ev);
 	event_free(c->sig);
 	event_base_free(c->base);
 	free(c);
@@ -203,7 +208,7 @@ client_free(struct client* c)
 static void
 usage(const char* name)
 {
-	char* opts = "config [proposer id] [# outstanding values] [value size]";
+	char* opts = "config [proposer id] [# outstanding values] [value size] [client id]";
 	printf("Usage: %s %s\n", name, opts);
 	exit(1);
 }
@@ -214,8 +219,9 @@ main(int argc, char const *argv[])
 	int proposer_id = 0;
 	int outstanding = 1;
 	int value_size = 64;
+        int client_id = 1;
 	
-	if (argc < 2 || argc > 5)
+	if (argc < 2 || argc > 6)
 		usage(argv[0]);
 	if (argc == 3)
 		proposer_id = atoi(argv[2]);
@@ -223,11 +229,12 @@ main(int argc, char const *argv[])
 		outstanding = atoi(argv[3]);
 	if (argc == 5)
 		value_size = atoi(argv[4]);
-	
+	if (argc == 6)
+		client_id = atoi(argv[5]);
 	srand(time(NULL));
 	
 	struct client* client;
-	client = make_client(argv[1], proposer_id, outstanding, value_size);	
+	client = make_client(argv[1], proposer_id, outstanding, value_size, client_id);	
 	event_base_dispatch(client->base);
 	client_free(client);
 	

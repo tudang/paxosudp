@@ -63,6 +63,7 @@ struct client
 	struct bufferevent* bev;
 	struct event* stats_ev;
 	struct timeval stats_interval;
+	struct timeval start_time;
 	struct event* sig;
 	struct evlearner* learner;
   FILE* output;
@@ -117,8 +118,8 @@ on_deliver(unsigned iid, char* value, size_t size, void* arg)
 	struct timeval tv;
 	gettimeofday(&tv, NULL);
 	long latency = timeval_diff(&v->t, &tv);
-        long dt = tv.tv_sec - c->stats_interval.tv_sec;
-        if (dt == 60) raise(SIGINT);
+        long dt = tv.tv_sec - c->start_time.tv_sec;
+        if (dt > 60) raise(SIGINT);
 	fprintf(c->output, "%d,%ld,%ld,%ld\n", c->outstanding, v->size, dt, latency);
 	//	c->stats.delivered++;
 	//	c->stats.avg_latency = c->stats.avg_latency + ((latency - c->stats.avg_latency) / c->stats.delivered);
@@ -179,7 +180,8 @@ make_client(const char* config, int proposer_id, int outstanding, int value_size
 	c->value_size = value_size;
 	c->outstanding = outstanding;
 	
-	gettimeofday(&c->stats_interval, NULL); // = (struct timeval){1, 0};
+	gettimeofday(&c->start_time, NULL); 
+        c->stats_interval = (struct timeval){1, 0};
 	//	c->stats_ev = evtimer_new(c->base, on_stats, c);
 	//	event_add(c->stats_ev, &c->stats_interval);
 	

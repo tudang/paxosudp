@@ -191,7 +191,7 @@ make_client(const char* config, int proposer_id, int outstanding, int value_size
 	c->sig = evsignal_new(c->base, SIGINT, handle_sigint, c->base);
 	evsignal_add(c->sig, NULL);
         char outname[20];
-        sprintf (outname, "data-client-%d.csv", client_id);
+        sprintf (outname, "client%d-%d-%dB.csv", client_id, outstanding, value_size);
 	c->output = fopen(outname, "w");
 	
 	return c;
@@ -225,11 +225,11 @@ main(int argc, char const *argv[])
 	
 	if (argc < 2 || argc > 6)
 		usage(argv[0]);
-	if (argc == 3)
+	if (argc >= 3)
 		proposer_id = atoi(argv[2]);
 	if (argc >= 4)
 		outstanding = atoi(argv[3]);
-	if (argc == 5)
+	if (argc >= 5)
 		value_size = atoi(argv[4]);
 	if (argc == 6)
 		client_id = atoi(argv[5]);

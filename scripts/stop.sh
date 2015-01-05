@@ -1,13 +1,9 @@
 #!/bin/sh
 
-function usage {
-  echo "Usage: stop.sh"
-}
-
 
 echo "Terminate Acceptors and Proposers"
-ssh node80 "pkill acceptor"
-ssh node82 "pkill acceptor"
-ssh node83 "pkill acceptor"
-ssh node85 "pkill proposer"
+ssh node70 "pkill acceptor"
+ssh node71 "pkill acceptor"
+ssh node72 "pkill acceptor"
+ssh node74 "pkill proposer"
 echo "Experiment end successfully"

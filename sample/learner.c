@@ -51,9 +51,9 @@ deliver(unsigned iid, char* value, size_t size, void* arg)
         curtime=tv.tv_sec;
 
         strftime(buffer,30,"%m-%d-%Y  %T.",localtime(&curtime));
-        printf("%s%ld\n",buffer,tv.tv_usec);
+        //printf("%s%ld\n",buffer,tv.tv_usec);
 
-	printf("%s\n", value);
+	//printf("%s\n", value);
 }
 
 int

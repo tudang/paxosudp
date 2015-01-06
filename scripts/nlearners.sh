@@ -24,13 +24,14 @@ ssh node74 "nohup bwm-ng $EXEC_DIR/bwm-ng.conf > $BWM_DIR/$N/proposer0.csv 2>&1 
 
 for ((i=1; i<=N; i++ ))
 do
-  c=$[$i+1]
+  if [ $i -eq 42 ]; then c=62; else c=$[$i+1]; fi
   ssh node$c "nohup $EXEC_DIR/learner $EXEC_DIR/paxos.conf > experiment_log/learner$i.log 2>&1 &"
   ssh node$c "nohup bwm-ng $EXEC_DIR/bwm-ng.conf > $BWM_DIR/$N/learner$i.csv 2>&1 &"
 done
 
 #run the client
 $EXEC_DIR/client $EXEC_DIR/paxos.conf 0 1 8192 1 
+mv client1-1-8192B.csv n$N-learners.csv
 
 echo "Terminate Acceptors and Proposers"
 
@@ -40,7 +41,7 @@ ssh node72 "pkill acceptor"
 ssh node74 "pkill proposer"
 for ((i=1; i<=N; i++ ))
   do
-  c=$[$i+1]
+  if [ $i -eq 42 ]; then c=62; else c=$[$i+1]; fi
   ssh node$c "pkill learner"
   done
 echo "Experiment end successfully"

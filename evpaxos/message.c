@@ -40,111 +40,114 @@ bufferevent_pack_data(void* data, const char* buf, size_t len)
 }
 
 void
-send_paxos_message(struct bufferevent* bev, paxos_message* msg)
+send_paxos_message(int socket, paxos_message* msg)
 {
-	msgpack_packer* packer;
-	packer = msgpack_packer_new(bev, bufferevent_pack_data);
-	msgpack_pack_paxos_message(packer, msg);
-	msgpack_packer_free(packer);
+  msgpack_packer* packer;
+  msgpack_sbuffer* buffer = msgpack_sbuffer_new();
+  packer = msgpack_packer_new(buffer, msgpack_sbuffer_write);
+  msgpack_pack_paxos_message(packer, msg);
+
+  send(socket, buffer->data, buffer->size, MSG_DONTWAIT);
+
+  msgpack_packer_free(packer);
+  msgpack_sbuffer_free(buffer);
 }
 
 void
-send_paxos_prepare(struct bufferevent* bev, paxos_prepare* p)
+send_paxos_prepare(int socket, paxos_prepare* p)
 {
 	paxos_message msg = {
 		.type = PAXOS_PREPARE,
 		.u.prepare = *p };
-	send_paxos_message(bev, &msg);
+	send_paxos_message(socket, &msg);
 	paxos_log_debug("Send prepare for iid %d ballot %d", p->iid, p->ballot);
 }
 
 void
-send_paxos_promise(struct bufferevent* bev, paxos_promise* p)
+send_paxos_promise(int socket, paxos_promise* p)
 {
 	paxos_message msg = {
 		.type = PAXOS_PROMISE,
 		.u.promise = *p };
-	send_paxos_message(bev, &msg);
+	send_paxos_message(socket, &msg);
 	paxos_log_debug("Send promise for iid %d ballot %d", p->iid, p->ballot);
 }
 
 void 
-send_paxos_accept(struct bufferevent* bev, paxos_accept* p)
+send_paxos_accept(int socket, paxos_accept* p)
 {
 	paxos_message msg = {
 		.type = PAXOS_ACCEPT,
 		.u.accept = *p };
-	send_paxos_message(bev, &msg);
+	send_paxos_message(socket, &msg);
 	paxos_log_debug("Send accept for iid %d ballot %d", p->iid, p->ballot);
 }
 
 void
-send_paxos_accepted(struct bufferevent* bev, paxos_accepted* p)
+send_paxos_accepted(int socket, paxos_accepted* p)
 {	
 	paxos_message msg = {
 		.type = PAXOS_ACCEPTED,
 		.u.accepted = *p };
-	send_paxos_message(bev, &msg);
+	send_paxos_message(socket, &msg);
 	paxos_log_debug("Send accepted for inst %d ballot %d", p->iid, p->ballot);
 }
 
 void
-send_paxos_preempted(struct bufferevent* bev, paxos_preempted* p)
+send_paxos_preempted(int socket, paxos_preempted* p)
 {
 	paxos_message msg = {
 		.type = PAXOS_PREEMPTED,
 		.u.preempted = *p };
-	send_paxos_message(bev, &msg);
+	send_paxos_message(socket, &msg);
 	paxos_log_debug("Send preempted for inst %d ballot %d", p->iid, p->ballot);
 }
 
 void
-send_paxos_repeat(struct bufferevent* bev, paxos_repeat* p)
+send_paxos_repeat(int socket, paxos_repeat* p)
 {
 	paxos_message msg = {
 		.type = PAXOS_REPEAT,
 		.u.repeat = *p };
-	send_paxos_message(bev, &msg);
+	send_paxos_message(socket, &msg);
 	paxos_log_debug("Send repeat for inst %d-%d", p->from, p->to);
 }
 
 void
-send_paxos_trim(struct bufferevent* bev, paxos_trim* t)
+send_paxos_trim(int socket, paxos_trim* t)
 {
 	paxos_message msg = {
 		.type = PAXOS_TRIM,
 		.u.trim = *t };
-	send_paxos_message(bev, &msg);
+	send_paxos_message(socket, &msg);
 	paxos_log_debug("Send trim for inst %d", t->iid);
 }
 
 void
-paxos_submit(struct bufferevent* bev, char* data, int size)
+paxos_submit(int socket, char* data, int size)
 {
 	paxos_message msg = {
 		.type = PAXOS_CLIENT_VALUE,
 		.u.client_value.value.paxos_value_len = size,
 		.u.client_value.value.paxos_value_val = data };
-	send_paxos_message(bev, &msg);
+	send_paxos_message(socket, &msg);
 }
 
 int
-recv_paxos_message(struct evbuffer* in, paxos_message* out)
+recv_paxos_message(char* buffer, size_t size, paxos_message* out)
 {
 	int rv = 0;
-	char* buffer;
-	size_t size, offset = 0;
+	size_t offset = 0;
 	msgpack_unpacked msg;
 	
-	size = evbuffer_get_length(in);
 	if (size == 0) 
 		return rv;
 	
 	msgpack_unpacked_init(&msg);
-	buffer = (char*)evbuffer_pullup(in, size);	
+		
 	if (msgpack_unpack_next(&msg, buffer, size, &offset)) {
 		msgpack_unpack_paxos_message(&msg.data, out);
-		evbuffer_drain(in, offset);
+		
 		rv = 1;
 	}
 	msgpack_unpacked_destroy(&msg);

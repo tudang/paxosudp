@@ -50,7 +50,7 @@ void peers_foreach_client(struct peers* p, peer_iter_cb cb, void* arg);
 struct peer* peers_get_acceptor(struct peers* p, int id);
 struct event_base* peers_get_event_base(struct peers* p);
 int peer_get_id(struct peer* p);
-struct bufferevent* peer_get_buffer(struct peer* p);
+int peer_get_buffer(struct peer* p);
 int peer_connected(struct peer* p);
 
 #endif

@@ -58,10 +58,11 @@ struct client
 {
 	int value_size;
 	int outstanding;
+        int socket;
 	struct stats stats;
 	struct event_base* base;
-	struct bufferevent* bev;
 	struct event* stats_ev;
+	struct event* connect_ev;
 	struct timeval stats_interval;
 	struct timeval start_time;
 	struct event* sig;
@@ -97,7 +98,7 @@ client_submit_value(struct client* c)
   random_string(v.value, v.size);
 
   int vsize = sizeof(size_t) + sizeof(struct timeval) + v.size;
-  paxos_submit(c->bev, (char*) &v, vsize);
+  paxos_submit(c->socket, (char*) &v, vsize);
 }
 
 
@@ -131,7 +132,7 @@ static void
 on_stats(evutil_socket_t fd, short event, void *arg)
 {
 	struct client* c = arg;
-	double mbps = (double)((c->stats.delivered*c->value_size*8)+(sizeof(struct timeval)+sizeof(size_t)*8)) / (1024*1024);
+	//double mbps = (double)((c->stats.delivered*c->value_size*8)+(sizeof(struct timeval)+sizeof(size_t)*8)) / (1024*1024);
         //#printf("%d value/sec, %.2f Mbps, %d avg latency us\n", c->stats.delivered, mbps, c->stats.avg_latency);
 	c->stats.delivered = 0;
 	c->stats.avg_latency = 0;
@@ -139,7 +140,7 @@ on_stats(evutil_socket_t fd, short event, void *arg)
 }
 
 static void
-on_connect(struct bufferevent* bev, short events, void* arg)
+on_connect(int socket, short events, void* arg)
 {
 	int i;
 	struct client* c = arg;
@@ -152,17 +153,20 @@ on_connect(struct bufferevent* bev, short events, void* arg)
 	}
 }
 
-static struct bufferevent* 
+static int
 connect_to_proposer(struct client* c, const char* config, int proposer_id)
 {
-	struct bufferevent* bev;
+	int sockfd;
 	struct evpaxos_config* conf = evpaxos_config_read(config);
 	struct sockaddr_in addr = evpaxos_proposer_address(conf, proposer_id);
-	bev = bufferevent_socket_new(c->base, -1, BEV_OPT_CLOSE_ON_FREE);
-	bufferevent_setcb(bev, NULL, NULL, on_connect, c);
-	bufferevent_enable(bev, EV_READ|EV_WRITE);
-	bufferevent_socket_connect(bev, (struct sockaddr*)&addr, sizeof(addr));
-	return bev;
+        sockfd = socket(AF_INET, SOCK_DGRAM, 0);
+        if (sockfd == -1) {
+          perror("connect to proposer: socket");
+          exit(1);
+        }
+        connect(sockfd, (struct sockaddr*)&addr, sizeof(addr));
+        c->connect_ev = event_new(c->base, sockfd, EV_READ, on_connect, NULL);
+	return sockfd;
 }
 
 static struct client*
@@ -173,9 +177,7 @@ make_client(const char* config, int proposer_id, int outstanding, int value_size
 	c->base = event_base_new();
 	
 	memset(&c->stats, 0, sizeof(struct stats));
-	c->bev = connect_to_proposer(c, config, proposer_id);
-	if (c->bev == NULL)
-		exit(1);
+	c->socket = connect_to_proposer(c, config, proposer_id);
 	
 	c->value_size = value_size;
 	c->outstanding = outstanding;
@@ -200,7 +202,7 @@ make_client(const char* config, int proposer_id, int outstanding, int value_size
 static void
 client_free(struct client* c)
 {
-	bufferevent_free(c->bev);
+	//bufferevent_free(c->bev);
 	//	event_free(c->stats_ev);
 	event_free(c->sig);
 	event_base_free(c->base);

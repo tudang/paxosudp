@@ -40,97 +40,112 @@ bufferevent_pack_data(void* data, const char* buf, size_t len)
 }
 
 void
-send_paxos_message(int socket, paxos_message* msg)
+send_paxos_message_addr(struct sockaddr* addr, paxos_message* msg)
 {
   msgpack_packer* packer;
   msgpack_sbuffer* buffer = msgpack_sbuffer_new();
   packer = msgpack_packer_new(buffer, msgpack_sbuffer_write);
   msgpack_pack_paxos_message(packer, msg);
-
-  send(socket, buffer->data, buffer->size, MSG_DONTWAIT);
+  
+  sendto(1, buffer->data, buffer->size, MSG_DONTWAIT,
+      addr, sizeof(struct sockaddr));
 
   msgpack_packer_free(packer);
   msgpack_sbuffer_free(buffer);
 }
 
 void
-send_paxos_prepare(int socket, paxos_prepare* p)
+send_paxos_message(struct peer* p, paxos_message* msg)
+{
+  msgpack_packer* packer;
+  msgpack_sbuffer* buffer = msgpack_sbuffer_new();
+  packer = msgpack_packer_new(buffer, msgpack_sbuffer_write);
+  msgpack_pack_paxos_message(packer, msg);
+  
+  sendto(p->peer_sockfd, buffer->data, buffer->size, MSG_DONTWAIT,
+	 (struct sockaddr*)peer_get_buffer(p), sizeof(struct sockaddr));
+  msgpack_packer_free(packer);
+  msgpack_sbuffer_free(buffer);
+}
+
+void
+send_paxos_prepare(struct peer* peer, paxos_prepare* p)
 {
 	paxos_message msg = {
 		.type = PAXOS_PREPARE,
 		.u.prepare = *p };
-	send_paxos_message(socket, &msg);
+	send_paxos_message(peer, &msg);
 	paxos_log_debug("Send prepare for iid %d ballot %d", p->iid, p->ballot);
 }
 
 void
-send_paxos_promise(int socket, paxos_promise* p)
+send_paxos_promise(struct peer* peer, paxos_promise* p)
 {
 	paxos_message msg = {
 		.type = PAXOS_PROMISE,
 		.u.promise = *p };
-	send_paxos_message(socket, &msg);
+	send_paxos_message(peer, &msg);
 	paxos_log_debug("Send promise for iid %d ballot %d", p->iid, p->ballot);
 }
 
 void 
-send_paxos_accept(int socket, paxos_accept* p)
+send_paxos_accept(struct peer* peer, paxos_accept* p)
 {
 	paxos_message msg = {
 		.type = PAXOS_ACCEPT,
 		.u.accept = *p };
-	send_paxos_message(socket, &msg);
+	send_paxos_message(peer, &msg);
 	paxos_log_debug("Send accept for iid %d ballot %d", p->iid, p->ballot);
 }
 
 void
-send_paxos_accepted(int socket, paxos_accepted* p)
+send_paxos_accepted(struct peer* peer, paxos_accepted* p)
 {	
 	paxos_message msg = {
 		.type = PAXOS_ACCEPTED,
 		.u.accepted = *p };
-	send_paxos_message(socket, &msg);
+	send_paxos_message(peer, &msg);
 	paxos_log_debug("Send accepted for inst %d ballot %d", p->iid, p->ballot);
 }
 
 void
-send_paxos_preempted(int socket, paxos_preempted* p)
+send_paxos_preempted(struct peer* peer, paxos_preempted* p)
 {
 	paxos_message msg = {
 		.type = PAXOS_PREEMPTED,
 		.u.preempted = *p };
-	send_paxos_message(socket, &msg);
+	send_paxos_message(peer, &msg);
 	paxos_log_debug("Send preempted for inst %d ballot %d", p->iid, p->ballot);
 }
 
 void
-send_paxos_repeat(int socket, paxos_repeat* p)
+send_paxos_repeat(struct peer* peer, paxos_repeat* p)
 {
 	paxos_message msg = {
 		.type = PAXOS_REPEAT,
 		.u.repeat = *p };
-	send_paxos_message(socket, &msg);
+	send_paxos_message(peer, &msg);
 	paxos_log_debug("Send repeat for inst %d-%d", p->from, p->to);
 }
 
 void
-send_paxos_trim(int socket, paxos_trim* t)
+send_paxos_trim(struct peer* peer, paxos_trim* t)
 {
 	paxos_message msg = {
 		.type = PAXOS_TRIM,
 		.u.trim = *t };
-	send_paxos_message(socket, &msg);
+	send_paxos_message(peer, &msg);
 	paxos_log_debug("Send trim for inst %d", t->iid);
 }
 
 void
-paxos_submit(int socket, char* data, int size)
+paxos_submit(struct sockaddr* addr, char* data, int size)
 {
 	paxos_message msg = {
 		.type = PAXOS_CLIENT_VALUE,
 		.u.client_value.value.paxos_value_len = size,
 		.u.client_value.value.paxos_value_val = data };
-	send_paxos_message(socket, &msg);
+	send_paxos_message_addr(addr, &msg);
 }
 
 int
@@ -141,13 +156,12 @@ recv_paxos_message(char* buffer, size_t size, paxos_message* out)
 	msgpack_unpacked msg;
 	
 	if (size == 0) 
-		return rv;
+	  return rv;
 	
 	msgpack_unpacked_init(&msg);
 		
 	if (msgpack_unpack_next(&msg, buffer, size, &offset)) {
 		msgpack_unpack_paxos_message(&msg.data, out);
-		
 		rv = 1;
 	}
 	msgpack_unpacked_destroy(&msg);

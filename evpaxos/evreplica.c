@@ -87,7 +87,7 @@ evpaxos_replica_set_instance_id(struct evpaxos_replica* r, unsigned iid)
 static void
 peer_send_trim(struct peer* p, void* arg)
 {
-	send_paxos_trim(peer_get_buffer(p), arg);
+	send_paxos_trim(p, arg);
 }
 
 void
@@ -105,7 +105,7 @@ evpaxos_replica_submit(struct evpaxos_replica* r, char* value, int size)
 	for (i = 0; i < peers_count(r->peers); ++i) {
 		p = peers_get_acceptor(r->peers, i);
 		if (peer_connected(p)) {
-			paxos_submit(peer_get_buffer(p), value, size);
+			paxos_submit((struct sockaddr*)&(p->addr), value, size);
 			return;
 		}
 	}

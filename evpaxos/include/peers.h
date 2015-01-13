@@ -33,7 +33,15 @@
 #include "config.h"
 #include <event2/bufferevent.h>
 
-struct peer;
+struct peer
+{
+        int id; 
+        int status;
+        int peer_sockfd; //struct bufferevent* bev; // replace bufferevent with socket
+        struct event* reconnect_ev;
+        struct sockaddr_in addr;
+        struct peers* peers;
+};
 struct peers;
 
 typedef void (*peer_cb)(struct peer* p, paxos_message* m, void* arg);
@@ -50,7 +58,7 @@ void peers_foreach_client(struct peers* p, peer_iter_cb cb, void* arg);
 struct peer* peers_get_acceptor(struct peers* p, int id);
 struct event_base* peers_get_event_base(struct peers* p);
 int peer_get_id(struct peer* p);
-int peer_get_buffer(struct peer* p);
+struct sockaddr_in* peer_get_buffer(struct peer* p);
 int peer_connected(struct peer* p);
 
 #endif

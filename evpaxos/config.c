@@ -44,10 +44,12 @@ struct address
 
 struct evpaxos_config
 {
+  int learners_count;
 	int proposers_count;
 	int acceptors_count;
 	struct address proposers[MAX_N_OF_PROPOSERS];
 	struct address acceptors[MAX_N_OF_PROPOSERS];
+  struct address learners[MAX_N_OF_PROPOSERS];
 };
 
 enum option_type
@@ -152,6 +154,24 @@ evpaxos_config_free(struct evpaxos_config* config)
 	for (i = 0; i < config->acceptors_count; ++i)
 		address_free(&config->acceptors[i]);
 	free(config);
+}
+
+int
+evpaxos_learner_count(struct evpaxos_config* config)
+{
+  return config->learners_count;
+}
+
+struct sockaddr_in
+evpaxos_learner_address(struct evpaxos_config* config, int i)
+{
+	return address_to_sockaddr(&config->learners[i]);
+}
+
+int
+evpaxos_proposer_count(struct evpaxos_config* config)
+{
+  return config->proposers_count;
 }
 
 struct sockaddr_in
@@ -327,6 +347,16 @@ parse_line(struct evpaxos_config* c, char* line)
 			return 0;
 		}
 		struct address* addr = &c->proposers[c->proposers_count++];
+		return parse_address(line, addr);
+	}
+
+	if (strcasecmp(tok, "l") == 0 || strcasecmp(tok, "learner") == 0) {
+		if (c->learners_count >= MAX_N_OF_PROPOSERS) {
+			paxos_log_error("Number of learners exceded maximum of: %d\n",
+				MAX_N_OF_PROPOSERS);
+			return 0;
+		}
+		struct address* addr = &c->learners[c->learners_count++];
 		return parse_address(line, addr);
 	}
 	

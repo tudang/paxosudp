@@ -160,6 +160,6 @@ void evproposer_set_instance_id(struct evproposer* p, unsigned iid);
 /**
  * Used by clients to submit values to proposers.
  */
-void paxos_submit(int socket, char* value, int size);
+void paxos_submit(struct sockaddr* addr, char* value, int size);
 
 #endif

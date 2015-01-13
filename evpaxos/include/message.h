@@ -30,17 +30,16 @@
 #define _TCP_SENDBUF_H_
 
 #include "paxos.h"
-#include <event2/buffer.h>
-#include <event2/bufferevent.h>
+#include "peers.h"
 
-void send_paxos_message(int socket, paxos_message* msg);
-void send_paxos_prepare(int socket, paxos_prepare* msg);
-void send_paxos_promise(int socket, paxos_promise* msg);
-void send_paxos_accept(int socket, paxos_accept* msg);
-void send_paxos_accepted(int socket, paxos_accepted* msg);
-void send_paxos_preempted(int socket, paxos_preempted* msg);
-void send_paxos_repeat(int socket, paxos_repeat* msg);
-void send_paxos_trim(int socket, paxos_trim* msg);
+void send_paxos_message(struct peer* peer, paxos_message* msg);
+void send_paxos_prepare(struct peer* peer, paxos_prepare* msg);
+void send_paxos_promise(struct peer* peer, paxos_promise* msg);
+void send_paxos_accept(struct peer* peer, paxos_accept* msg);
+void send_paxos_accepted(struct peer* peer, paxos_accepted* msg);
+void send_paxos_preempted(struct peer* peer, paxos_preempted* msg);
+void send_paxos_repeat(struct peer* peer, paxos_repeat* msg);
+void send_paxos_trim(struct peer* peer, paxos_trim* msg);
 int recv_paxos_message(char *buf, size_t size, paxos_message* out);
 
 #endif

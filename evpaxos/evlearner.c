@@ -49,7 +49,7 @@ struct evlearner
 static void
 peer_send_repeat(struct peer* p, void* arg)
 {
-	send_paxos_repeat(peer_get_buffer(p), arg);
+	send_paxos_repeat(p, arg);
 }
 
 static void

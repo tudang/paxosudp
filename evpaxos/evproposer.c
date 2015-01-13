@@ -49,13 +49,13 @@ struct evproposer
 static void
 peer_send_prepare(struct peer* p, void* arg)
 {
-	send_paxos_prepare(peer_get_buffer(p), arg);
+	send_paxos_prepare(p, arg);
 }
 
 static void
 peer_send_accept(struct peer* p, void* arg)
 {
-	send_paxos_accept(peer_get_buffer(p), arg);
+	send_paxos_accept(p, arg);
 }
 
 static void
@@ -212,11 +212,12 @@ evproposer_init(int id, const char* config_file, struct event_base* base)
 	}
 	
 	struct peers* peers = peers_new(base, config);
-	peers_connect_to_acceptors(peers);
 	int port = evpaxos_proposer_listen_port(config, id);
 	int rv = peers_listen(peers, port);
 	if (rv == 0)
 		return NULL;
+	peers_connect_to_acceptors(peers);
+
 	struct evproposer* p = evproposer_init_internal(id, config, peers);
 	evpaxos_config_free(config);
 	return p;

@@ -40,16 +40,16 @@ bufferevent_pack_data(void* data, const char* buf, size_t len)
 }
 
 void
-send_paxos_message_addr(struct sockaddr* addr, paxos_message* msg)
+send_paxos_message_addr(int socket, struct sockaddr* addr, paxos_message* msg)
 {
   msgpack_packer* packer;
   msgpack_sbuffer* buffer = msgpack_sbuffer_new();
   packer = msgpack_packer_new(buffer, msgpack_sbuffer_write);
   msgpack_pack_paxos_message(packer, msg);
   
-  sendto(1, buffer->data, buffer->size, MSG_DONTWAIT,
+  sendto(socket, buffer->data, buffer->size, MSG_DONTWAIT,
       addr, sizeof(struct sockaddr));
-
+  //printf("%d size\n", buffer->size);
   msgpack_packer_free(packer);
   msgpack_sbuffer_free(buffer);
 }
@@ -64,6 +64,7 @@ send_paxos_message(struct peer* p, paxos_message* msg)
   
   sendto(p->peer_sockfd, buffer->data, buffer->size, MSG_DONTWAIT,
 	 (struct sockaddr*)peer_get_buffer(p), sizeof(struct sockaddr));
+  //printf("%d size\n", buffer->size);
   msgpack_packer_free(packer);
   msgpack_sbuffer_free(buffer);
 }
@@ -139,13 +140,13 @@ send_paxos_trim(struct peer* peer, paxos_trim* t)
 }
 
 void
-paxos_submit(struct sockaddr* addr, char* data, int size)
+paxos_submit(int socket, struct sockaddr* addr, char* data, int size)
 {
 	paxos_message msg = {
 		.type = PAXOS_CLIENT_VALUE,
 		.u.client_value.value.paxos_value_len = size,
 		.u.client_value.value.paxos_value_val = data };
-	send_paxos_message_addr(addr, &msg);
+	send_paxos_message_addr(socket, addr, &msg);
 }
 
 int
@@ -157,7 +158,7 @@ recv_paxos_message(char* buffer, size_t size, paxos_message* out)
 	
 	if (size == 0) 
 	  return rv;
-	
+        //printf("rec size %d\n", size);	
 	msgpack_unpacked_init(&msg);
 		
 	if (msgpack_unpack_next(&msg, buffer, size, &offset)) {

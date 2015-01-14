@@ -105,7 +105,8 @@ evpaxos_replica_submit(struct evpaxos_replica* r, char* value, int size)
 	for (i = 0; i < peers_count(r->peers); ++i) {
 		p = peers_get_acceptor(r->peers, i);
 		if (peer_connected(p)) {
-			paxos_submit((struct sockaddr*)&(p->addr), value, size);
+                        int sock = p->peer_sockfd;
+			paxos_submit(sock, (struct sockaddr*)&(p->addr), value, size);
 			return;
 		}
 	}

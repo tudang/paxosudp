@@ -45,10 +45,10 @@ struct address
 struct evpaxos_config
 {
   int learners_count;
-	int proposers_count;
-	int acceptors_count;
-	struct address proposers[MAX_N_OF_PROPOSERS];
-	struct address acceptors[MAX_N_OF_PROPOSERS];
+  int proposers_count;
+  int acceptors_count;
+  struct address proposers[MAX_N_OF_PROPOSERS];
+  struct address acceptors[MAX_N_OF_PROPOSERS];
   struct address learners[MAX_N_OF_PROPOSERS];
 };
 
@@ -166,6 +166,12 @@ struct sockaddr_in
 evpaxos_learner_address(struct evpaxos_config* config, int i)
 {
 	return address_to_sockaddr(&config->learners[i]);
+}
+
+int
+evpaxos_learner_listen_port(struct evpaxos_config* config, int i)
+{
+	return config->learners[i].port;
 }
 
 int

@@ -43,8 +43,15 @@ struct evlearner
 	struct event* hole_timer;   /* Timer to check for holes */
 	struct timeval tv;          /* Check for holes every tv units of time */
 	struct peers* acceptors;    /* Connections to acceptors */
+  int bind_fd;
 };
 
+
+void
+evlearner_submit_value(struct evlearner* learner, struct sockaddr* addr, char* value, size_t size)
+{
+  paxos_submit(learner->bind_fd, addr, value, size);
+}
 
 static void
 peer_send_repeat(struct peer* p, void* arg)
@@ -118,17 +125,29 @@ evlearner_init_internal(struct evpaxos_config* config, struct peers* peers,
 }
 
 struct evlearner*
-evlearner_init(const char* config_file, deliver_function f, void* arg, 
+evlearner_init(int id, const char* config_file, deliver_function f, void* arg, 
 	struct event_base* b)
 {
 	struct evpaxos_config* c = evpaxos_config_read(config_file);
 	if (c == NULL) return NULL;
-
+        if (id < 0 || id >= MAX_N_OF_PROPOSERS) {
+                paxos_log_error("Invalid learner id: %d", id);
+                return NULL;
+        }   
+    
 	struct peers* peers = peers_new(b, c);
+        
+        int port = evpaxos_learner_listen_port(c, id);
+        int fd = peers_listen(peers, port);
+        if (fd == 0)
+                return NULL;	
 	peers_connect_to_acceptors(peers);
 	struct evlearner* l = evlearner_init_internal(c, peers, f, arg);
 
+	l->bind_fd = fd;
+
 	evpaxos_config_free(c);
+        //printf("evlearner_init\n");
 	return l;
 }
 

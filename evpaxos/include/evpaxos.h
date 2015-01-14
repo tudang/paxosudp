@@ -106,13 +106,16 @@ int evpaxos_replica_count(struct evpaxos_replica* replica);
  * an optional argument to that is passed to the callback, and
  * a libevent event_base.
  */
-struct evlearner* evlearner_init(const char* config, deliver_function f,
+struct evlearner* evlearner_init(int id, const char* config, deliver_function f,
 	void* arg, struct event_base* base);
 
 /**
  * Release the memory allocated by the learner
  */
 void evlearner_free(struct evlearner* l);
+
+
+void evlearner_submit_value(struct evlearner* learner, struct sockaddr* addr, char* value, size_t size);
 
 /**
  * Set the starting instance id of the given learner.
@@ -160,6 +163,6 @@ void evproposer_set_instance_id(struct evproposer* p, unsigned iid);
 /**
  * Used by clients to submit values to proposers.
  */
-void paxos_submit(struct sockaddr* addr, char* value, int size);
+void paxos_submit(int socket, struct sockaddr* addr, char* value, int size);
 
 #endif

@@ -63,14 +63,14 @@ main(int argc, char const *argv[])
 	struct evlearner* lea;
 	struct event_base* base;
 
-	if (argc != 2) {
-		printf("Usage: %s config\n", argv[0]);
+	if (argc != 3) {
+		printf("Usage: %s learner_id config\n", argv[0]);
 		exit(1);
 	}
 
 	base = event_base_new();
-
-	lea = evlearner_init(argv[1], deliver, NULL, base);
+        int learner_id = atoi(argv[1]);
+	lea = evlearner_init(learner_id, argv[2], deliver, NULL, base);
 	if (lea == NULL) {
 		printf("Could not start the learner!\n");
 		exit(1);

@@ -67,6 +67,7 @@ struct client
 	struct timeval start_time;
 	struct event* sig;
 	struct evlearner* learner;
+        struct sockaddr_in proposer;
   FILE* output;
 };
 
@@ -92,13 +93,13 @@ static void
 client_submit_value(struct client* c)
 {
   struct client_value v;
-  
   gettimeofday(&v.t, NULL);
   v.size = c->value_size;
   random_string(v.value, v.size);
 
   int vsize = sizeof(size_t) + sizeof(struct timeval) + v.size;
-  paxos_submit(c->socket, (char*) &v, vsize);
+
+  evlearner_submit_value(c->learner, (struct sockaddr*)&c->proposer, (char*) &v, vsize);
 }
 
 
@@ -132,41 +133,27 @@ static void
 on_stats(evutil_socket_t fd, short event, void *arg)
 {
 	struct client* c = arg;
-	//double mbps = (double)((c->stats.delivered*c->value_size*8)+(sizeof(struct timeval)+sizeof(size_t)*8)) / (1024*1024);
-        //#printf("%d value/sec, %.2f Mbps, %d avg latency us\n", c->stats.delivered, mbps, c->stats.avg_latency);
+	double mbps = (double)((c->stats.delivered*c->value_size*8)+(sizeof(struct timeval)+sizeof(size_t)*8)) / (1024*1024);
+        printf("%d value/sec, %.2f Mbps, %d avg latency us\n", c->stats.delivered, mbps, c->stats.avg_latency);
 	c->stats.delivered = 0;
 	c->stats.avg_latency = 0;
 	event_add(c->stats_ev, &c->stats_interval);
 }
 
 static void
-on_connect(int socket, short events, void* arg)
+submit_initial_values(struct client* c)
 {
 	int i;
-	struct client* c = arg;
-	if (events & BEV_EVENT_CONNECTED) {
-		printf("Connected to proposer\n");
-		for (i = 0; i < c->outstanding; ++i)
-			client_submit_value(c);
-	} else {
-		printf("%s\n", evutil_socket_error_to_string(EVUTIL_SOCKET_ERROR()));
-	}
+	for (i = 0; i < c->outstanding; ++i)
+	  client_submit_value(c);
 }
 
-static int
-connect_to_proposer(struct client* c, const char* config, int proposer_id)
+static void
+specify_proposer(struct client* c, const char* config, int proposer_id)
 {
 	int sockfd;
 	struct evpaxos_config* conf = evpaxos_config_read(config);
-	struct sockaddr_in addr = evpaxos_proposer_address(conf, proposer_id);
-        sockfd = socket(AF_INET, SOCK_DGRAM, 0);
-        if (sockfd == -1) {
-          perror("connect to proposer: socket");
-          exit(1);
-        }
-        connect(sockfd, (struct sockaddr*)&addr, sizeof(addr));
-        c->connect_ev = event_new(c->base, sockfd, EV_READ, on_connect, NULL);
-	return sockfd;
+        c->proposer =  evpaxos_proposer_address(conf, proposer_id);
 }
 
 static struct client*
@@ -177,7 +164,7 @@ make_client(const char* config, int proposer_id, int outstanding, int value_size
 	c->base = event_base_new();
 	
 	memset(&c->stats, 0, sizeof(struct stats));
-	c->socket = connect_to_proposer(c, config, proposer_id);
+	specify_proposer(c, config, proposer_id);
 	
 	c->value_size = value_size;
 	c->outstanding = outstanding;
@@ -188,14 +175,14 @@ make_client(const char* config, int proposer_id, int outstanding, int value_size
 	event_add(c->stats_ev, &c->stats_interval);
 	
 	paxos_config.learner_catch_up = 0;
-	c->learner = evlearner_init(config, on_deliver, c, c->base);
+	c->learner = evlearner_init(client_id, config, on_deliver, c, c->base);
+	submit_initial_values(c);
 	
 	c->sig = evsignal_new(c->base, SIGINT, handle_sigint, c->base);
 	evsignal_add(c->sig, NULL);
         char outname[20];
         sprintf (outname, "client%d-%d-%dB.csv", client_id, outstanding, value_size);
 	c->output = fopen(outname, "w");
-	
 	return c;
 }
 

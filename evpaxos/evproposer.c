@@ -217,6 +217,7 @@ evproposer_init(int id, const char* config_file, struct event_base* base)
 	if (rv == 0)
 		return NULL;
 	peers_connect_to_acceptors(peers);
+	peers_create_clients(peers);
 
 	struct evproposer* p = evproposer_init_internal(id, config, peers);
 	evpaxos_config_free(config);

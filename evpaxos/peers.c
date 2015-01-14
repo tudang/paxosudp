@@ -37,7 +37,7 @@
 #include <event2/bufferevent.h>
 #include <event2/listener.h>
 
-#define MAXBUFLEN 1024
+#define MAXBUFLEN 64000
 
 struct subscription
 {
@@ -224,7 +224,7 @@ peers_listen(struct peers* p, int port)
 	event_add(p->recv_ev, NULL);
 	
 	paxos_log_info("Listening on port %d", port);
-	return 1;
+	return p->bind_fd;
 }
 
 void
@@ -269,7 +269,7 @@ match_addr(struct peer** peers, int count, struct sockaddr* addr)
 struct peer*
 get_peer(struct peers* peers, struct sockaddr* addr)
 {
-  printf("%d\n", peers->clients_count);
+  //printf("%d\n", peers->clients_count);
   struct peer* p = match_addr(peers->clients, peers->clients_count, addr);
   if (p != NULL) return p;
   return match_addr(peers->peers, peers->peers_count, addr);
@@ -292,14 +292,13 @@ on_read(int fd, short event, void* arg)
 		perror("on_read: recvfrom");
 		exit(1);
 	}
-	
 
-	printf("%d\n", 	ntohs(addr.sin_port));
+//	printf("%d\n", 	ntohs(addr.sin_port));
 
         struct peer* p = get_peer(peers, (struct sockaddr*)&addr);
 	assert(p != NULL);
 
-	printf("received something\n");
+//	printf("received something\n");
 	
 	recv_paxos_message(buf, numbytes, &msg);
 	dispatch_message(p, &msg);

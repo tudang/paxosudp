@@ -121,8 +121,9 @@ on_deliver(unsigned iid, char* value, size_t size, void* arg)
 	gettimeofday(&tv, NULL);
 	long latency = timeval_diff(&v->t, &tv);
         long dt = tv.tv_sec - c->start_time.tv_sec;
-        if (dt > 300) exit(0);
-	fprintf(c->output, "%d,%ld,%ld,%ld\n", c->outstanding, v->size, dt, latency);
+        long ms = timeval_diff(&c->start_time, &tv);
+        if (dt > 60) exit(0);
+	fprintf(c->output, "%d,%ld,%ld,%ld\n", c->outstanding, v->size, ms, latency);
 	c->stats.delivered++;
 	c->stats.avg_latency = c->stats.avg_latency + ((latency - c->stats.avg_latency) / c->stats.delivered);
 	

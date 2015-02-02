@@ -110,6 +110,7 @@ peers_create_clients(struct peers* p)
     p->clients = realloc(p->clients,
 			 sizeof(struct peer*) * (p->clients_count+1));
     p->clients[p->clients_count] = make_peer(p, i, (struct sockaddr_in*)&addr);
+	p->clients[p->clients_count]->is_proposer = 1;
     p->clients_count++;
   }
   for (i = 0; i < evpaxos_learner_count(p->config); i++) {
@@ -117,6 +118,7 @@ peers_create_clients(struct peers* p)
     p->clients = realloc(p->clients,
 			 sizeof(struct peer*) * (p->clients_count+1));
     p->clients[p->clients_count] = make_peer(p, i, (struct sockaddr_in*)&addr);
+	p->clients[p->clients_count]->is_proposer = 0;
     p->clients_count++;
   }
 }
@@ -179,6 +181,11 @@ peers_get_acceptor(struct peers* p, int id)
 	return NULL;
 }
 
+int
+peer_is_proposer(struct peer* p)
+{
+	return p->is_proposer;
+}
 
 // return socket instead of bufferevent
 /*

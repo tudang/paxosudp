@@ -39,6 +39,7 @@
 
 struct evacceptor
 {
+	int id;
 	struct peers* peers;
 	struct acceptor* state;
 	struct event* timer_ev;
@@ -50,6 +51,15 @@ static void
 peer_send_paxos_message(struct peer* p, void* arg)
 {
 	send_paxos_message(p, arg);
+}
+
+static void
+peer_send_accepted(struct peer* p, void* arg)
+{
+	paxos_accepted* accepted = arg;
+	if (!peer_is_proposer(p)) {
+		send_paxos_accepted(p, accepted);
+	}
 }
 
 /*
@@ -82,7 +92,16 @@ evacceptor_handle_accept(struct peer* p, paxos_message* msg, void* arg)
 		accept->iid, accept->ballot);
 	if (acceptor_receive_accept(a->state, accept, &out) != 0) {
 		if (out.type == PAXOS_ACCEPTED) {
-			peers_foreach_client(a->peers, peer_send_paxos_message, &out);
+			paxos_accepted accepted_no_value;
+			accepted_no_value.iid = out.u.accepted.iid;
+			accepted_no_value.ballot = out.u.accepted.ballot;
+			accepted_no_value.value.paxos_value_len = 0;
+			send_paxos_accepted(p, &accepted_no_value);
+			if (a->id == 0) {
+				peers_foreach_client(a->peers, peer_send_accepted, &out.u.accepted);
+			} else {
+				peers_foreach_client(a->peers, peer_send_accepted, &accepted_no_value);
+			}
 		} else if (out.type == PAXOS_PREEMPTED) {
 			send_paxos_message(p, &out);
 		}
@@ -130,6 +149,7 @@ evacceptor_init_internal(int id, struct evpaxos_config* c, struct peers* p)
 	struct evacceptor* acceptor;
 	
 	acceptor = calloc(1, sizeof(struct evacceptor));
+	acceptor->id = id;
 	acceptor->state = acceptor_new(id);
 	acceptor->peers = p;
 	

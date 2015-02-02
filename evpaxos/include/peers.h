@@ -35,7 +35,8 @@
 
 struct peer
 {
-        int id; 
+        int id;
+		int is_proposer;
         int status;
         int peer_sockfd; //struct bufferevent* bev; // replace bufferevent with socket
         struct event* reconnect_ev;

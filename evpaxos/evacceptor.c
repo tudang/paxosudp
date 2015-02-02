@@ -93,6 +93,7 @@ evacceptor_handle_accept(struct peer* p, paxos_message* msg, void* arg)
 	if (acceptor_receive_accept(a->state, accept, &out) != 0) {
 		if (out.type == PAXOS_ACCEPTED) {
 			paxos_accepted accepted_no_value;
+			accepted_no_value.acceptor_id = out.u.accepted.acceptor_id;
 			accepted_no_value.iid = out.u.accepted.iid;
 			accepted_no_value.ballot = out.u.accepted.ballot;
 			accepted_no_value.value.paxos_value_len = 0;

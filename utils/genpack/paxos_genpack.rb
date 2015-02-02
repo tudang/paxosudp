@@ -11,6 +11,7 @@ schema = GenPack::Schema.define "paxos_types" do
     uint :ballot
   }
   message(:paxos_promise) {
+    uint :acceptor_id
     uint :iid
     uint :ballot
     uint :value_ballot
@@ -22,6 +23,7 @@ schema = GenPack::Schema.define "paxos_types" do
     paxos_value :value
   }
   message(:paxos_accepted) {
+    uint :acceptor_id
     uint :iid
     uint :ballot
     uint :value_ballot

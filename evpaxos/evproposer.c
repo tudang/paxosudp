@@ -84,12 +84,11 @@ try_accept(struct evproposer* p)
 static void
 evproposer_handle_promise(struct peer* p, paxos_message* msg, void* arg)
 {
-	int id = peer_get_id(p);
 	struct evproposer* proposer = arg;
 	paxos_promise* pro = &msg->u.promise;
 	
 	paxos_prepare prepare;
-	int preempted = proposer_receive_promise(proposer->state, pro, id, &prepare);
+	int preempted = proposer_receive_promise(proposer->state, pro, &prepare);
 	if (preempted)
 		peers_foreach_acceptor(proposer->peers, peer_send_prepare, &prepare);
 	try_accept(proposer);
@@ -100,7 +99,7 @@ evproposer_handle_accepted(struct peer* p, paxos_message* msg, void* arg)
 {
 	struct evproposer* proposer = arg;
 	paxos_accepted* acc = &msg->u.accepted;
-	if (proposer_receive_accepted(proposer->state, acc, peer_get_id(p)))
+	if (proposer_receive_accepted(proposer->state, acc))
 		try_accept(proposer);
 }
 

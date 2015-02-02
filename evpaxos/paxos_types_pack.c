@@ -37,6 +37,12 @@ static void msgpack_pack_string(msgpack_packer* p, char* buffer, int len)
 	msgpack_pack_raw_body(p, buffer, len);
 }
 
+static void msgpack_unpack_int32_at(msgpack_object* o, int32_t* v, int* i)
+{
+	*v = (int32_t)MSGPACK_OBJECT_AT(o,*i).u64;
+	(*i)++;
+}
+
 static void msgpack_unpack_uint32_at(msgpack_object* o, uint32_t* v, int* i)
 {
 	*v = (uint32_t)MSGPACK_OBJECT_AT(o,*i).u64;
@@ -81,8 +87,9 @@ void msgpack_unpack_paxos_prepare(msgpack_object* o, paxos_prepare* v)
 
 void msgpack_pack_paxos_promise(msgpack_packer* p, paxos_promise* v)
 {
-	msgpack_pack_array(p, 5);
+	msgpack_pack_array(p, 6);
 	msgpack_pack_int32(p, PAXOS_PROMISE);
+	msgpack_pack_uint32(p, v->acceptor_id);
 	msgpack_pack_uint32(p, v->iid);
 	msgpack_pack_uint32(p, v->ballot);
 	msgpack_pack_uint32(p, v->value_ballot);
@@ -92,6 +99,7 @@ void msgpack_pack_paxos_promise(msgpack_packer* p, paxos_promise* v)
 void msgpack_unpack_paxos_promise(msgpack_object* o, paxos_promise* v)
 {
 	int i = 1;
+	msgpack_unpack_uint32_at(o, &v->acceptor_id, &i);
 	msgpack_unpack_uint32_at(o, &v->iid, &i);
 	msgpack_unpack_uint32_at(o, &v->ballot, &i);
 	msgpack_unpack_uint32_at(o, &v->value_ballot, &i);
@@ -117,8 +125,9 @@ void msgpack_unpack_paxos_accept(msgpack_object* o, paxos_accept* v)
 
 void msgpack_pack_paxos_accepted(msgpack_packer* p, paxos_accepted* v)
 {
-	msgpack_pack_array(p, 5);
+	msgpack_pack_array(p, 6);
 	msgpack_pack_int32(p, PAXOS_ACCEPTED);
+	msgpack_pack_uint32(p, v->acceptor_id);
 	msgpack_pack_uint32(p, v->iid);
 	msgpack_pack_uint32(p, v->ballot);
 	msgpack_pack_uint32(p, v->value_ballot);
@@ -128,6 +137,7 @@ void msgpack_pack_paxos_accepted(msgpack_packer* p, paxos_accepted* v)
 void msgpack_unpack_paxos_accepted(msgpack_object* o, paxos_accepted* v)
 {
 	int i = 1;
+	msgpack_unpack_uint32_at(o, &v->acceptor_id, &i);
 	msgpack_unpack_uint32_at(o, &v->iid, &i);
 	msgpack_unpack_uint32_at(o, &v->ballot, &i);
 	msgpack_unpack_uint32_at(o, &v->value_ballot, &i);
@@ -269,3 +279,4 @@ void msgpack_unpack_paxos_message(msgpack_object* o, paxos_message* v)
 		break;
 	}
 }
+

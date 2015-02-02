@@ -33,12 +33,13 @@
 
 struct acceptor
 {
+	int id;
 	iid_t trim_iid;
 	struct storage store;
 };
 
-static void paxos_accepted_to_promise(paxos_accepted* acc, paxos_message* out);
-static void paxos_accept_to_accepted(paxos_accept* acc, paxos_message* out);
+static void paxos_accepted_to_promise(int id, paxos_accepted* acc, paxos_message* out);
+static void paxos_accept_to_accepted(int id, paxos_accept* acc, paxos_message* out);
 static void paxos_accepted_to_preempted(paxos_accepted* acc, paxos_message* out);
 
 
@@ -47,6 +48,7 @@ acceptor_new(int id)
 {
 	struct acceptor* a;
 	a = malloc(sizeof(struct acceptor));
+	a->id = id;
 	storage_init(&a->store, id);
 	if (storage_open(&a->store) < 0) {
 		free(a);
@@ -84,7 +86,7 @@ acceptor_receive_prepare(struct acceptor* a,
 		storage_put_record(&a->store, &acc);
 	}
 	storage_tx_commit(&a->store);
-	paxos_accepted_to_promise(&acc, out);
+	paxos_accepted_to_promise(a->id, &acc, out);
 	return 1;
 }
 
@@ -100,7 +102,7 @@ acceptor_receive_accept(struct acceptor* a,
 	int found = storage_get_record(&a->store, req->iid, &acc);
 	if (!found || acc.ballot <= req->ballot) {
 		paxos_log_debug("Accepting iid: %u, ballot: %u", req->iid, req->ballot);
-		paxos_accept_to_accepted(req, out);
+		paxos_accept_to_accepted(a->id, req, out);
 		storage_put_record(&a->store, &(out->u.accepted));
 	} else {
 		paxos_accepted_to_preempted(&acc, out);
@@ -139,10 +141,11 @@ acceptor_set_current_state(struct acceptor* a, paxos_acceptor_state* state)
 }
 
 static void
-paxos_accepted_to_promise(paxos_accepted* acc, paxos_message* out)
+paxos_accepted_to_promise(int id, paxos_accepted* acc, paxos_message* out)
 {
 	out->type = PAXOS_PROMISE;
 	out->u.promise = (paxos_promise) {
+		id,
 		acc->iid,
 		acc->ballot,
 		acc->value_ballot,
@@ -151,7 +154,7 @@ paxos_accepted_to_promise(paxos_accepted* acc, paxos_message* out)
 }
 
 static void
-paxos_accept_to_accepted(paxos_accept* acc, paxos_message* out)
+paxos_accept_to_accepted(int id, paxos_accept* acc, paxos_message* out)
 {
 	char* value = NULL;
 	int value_size = acc->value.paxos_value_len;
@@ -161,6 +164,7 @@ paxos_accept_to_accepted(paxos_accept* acc, paxos_message* out)
 	}
 	out->type = PAXOS_ACCEPTED;
 	out->u.accepted = (paxos_accepted) {
+		id,
 		acc->iid,
 		acc->ballot,
 		acc->ballot,

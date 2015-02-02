@@ -25,5 +25,5 @@ add_subdirectory(paxos)
 add_subdirectory(evpaxos)
 add_subdirectory(sample)
 
-enable_testing()
-add_subdirectory(unit)
+# enable_testing()
+# add_subdirectory(unit)

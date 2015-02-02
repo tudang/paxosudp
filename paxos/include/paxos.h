@@ -55,6 +55,7 @@ struct paxos_config
 	/* Proposer */
 	int proposer_timeout;
 	int proposer_preexec_window;
+	int proposer_send_to_all;
 	
 	/* Acceptor */
 	int storage_backend;

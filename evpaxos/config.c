@@ -75,6 +75,7 @@ struct option options[] =
 	{ "learner-catch-up", &paxos_config.learner_catch_up, option_boolean },
 	{ "proposer-timeout", &paxos_config.proposer_timeout, option_integer },
 	{ "proposer-preexec-window", &paxos_config.proposer_preexec_window, option_integer },
+	{ "proposer-send-to-all", &paxos_config.proposer_send_to_all, option_boolean },
 	{ "storage-backend", &paxos_config.storage_backend, option_backend },
 	{ "bdb-sync", &paxos_config.bdb_sync, option_boolean },
 	{ "acceptor-trash-files", &paxos_config.trash_files, option_boolean },

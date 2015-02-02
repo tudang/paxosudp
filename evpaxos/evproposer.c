@@ -49,13 +49,15 @@ struct evproposer
 static void
 peer_send_prepare(struct peer* p, void* arg)
 {
-	send_paxos_prepare(p, arg);
+	if (paxos_config.proposer_send_to_all || p->id == 0)
+		send_paxos_prepare(p, arg);
 }
 
 static void
 peer_send_accept(struct peer* p, void* arg)
 {
-	send_paxos_accept(p, arg);
+	if (paxos_config.proposer_send_to_all || p->id == 0)
+		send_paxos_accept(p, arg);
 }
 
 static void

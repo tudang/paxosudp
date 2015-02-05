@@ -54,8 +54,9 @@ static void msgpack_unpack_string_at(msgpack_object* o, char** buffer, int* len,
 	*buffer = NULL;
 	*len = MSGPACK_OBJECT_AT(o,*i).raw.size;
 	if (*len > 0) {
-		*buffer = malloc(*len);
-		memcpy(*buffer, MSGPACK_OBJECT_AT(o,*i).raw.ptr, *len);
+		*buffer = MSGPACK_OBJECT_AT(o,*i).raw.ptr;
+		// *buffer = malloc(*len);
+		// memcpy(*buffer, MSGPACK_OBJECT_AT(o,*i).raw.ptr, *len);
 	}
 	(*i)++;
 }

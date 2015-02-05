@@ -66,9 +66,11 @@ proposer_preexecute(struct evproposer* p)
 	int i;
 	paxos_prepare pr;
 	int count = p->preexec_window - proposer_prepared_count(p->state);
+	struct timeval tv;	
+	event_base_gettimeofday_cached(peers_get_event_base(p->peers), &tv);
 	if (count <= 0) return;
 	for (i = 0; i < count; i++) {
-		proposer_prepare(p->state, &pr);
+		proposer_prepare(p->state, &pr, &tv);
 		peers_foreach_acceptor(p->peers, peer_send_prepare, &pr);
 	}
 	paxos_log_debug("Opened %d new instances", count);

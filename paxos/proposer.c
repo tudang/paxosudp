@@ -72,7 +72,8 @@ static void proposer_move_instance(khash_t(instance)* f, khash_t(instance)* t,
 	struct instance* inst);
 static void proposer_trim_instances(struct proposer* p, khash_t(instance)* h,
 	iid_t iid);
-static struct instance* instance_new(iid_t iid, ballot_t ballot, int acceptors);
+static struct instance* instance_new(iid_t iid, ballot_t ballot, int acceptors,
+	struct timeval* tv);
 static void instance_free(struct instance* inst);
 static int instance_has_value(struct instance* inst);
 static int instance_has_promised_value(struct instance* inst);
@@ -131,12 +132,12 @@ proposer_set_instance_id(struct proposer* p, iid_t iid)
 }
 
 void
-proposer_prepare(struct proposer* p, paxos_prepare* out)
+proposer_prepare(struct proposer* p, paxos_prepare* out, struct timeval* tv)
 {
 	int rv;
 	iid_t iid = ++(p->next_prepare_iid);
 	ballot_t bal = proposer_next_ballot(p, 0);
-	struct instance* inst = instance_new(iid, bal, p->acceptors);
+	struct instance* inst = instance_new(iid, bal, p->acceptors, tv);
 	khiter_t k = kh_put_instance(p->prepare_instances, iid, &rv);
 	assert(rv > 0);
 	kh_value(p->prepare_instances, k) = inst;
@@ -433,7 +434,7 @@ proposer_trim_instances(struct proposer* p, khash_t(instance)* h, iid_t iid)
 }
 
 static struct instance*
-instance_new(iid_t iid, ballot_t ballot, int acceptors)
+instance_new(iid_t iid, ballot_t ballot, int acceptors, struct timeval* tv)
 {
 	struct instance* inst;
 	inst = malloc(sizeof(struct instance));
@@ -442,7 +443,8 @@ instance_new(iid_t iid, ballot_t ballot, int acceptors)
 	inst->value_ballot = 0;
 	inst->value = NULL;
 	inst->promised_value = NULL;
-	gettimeofday(&inst->created_at, NULL);
+	// gettimeofday(&inst->created_at, NULL);
+	inst->created_at = *tv;
 	quorum_init(&inst->quorum, acceptors);
 	assert(inst->iid > 0);
 	return inst;

@@ -34,6 +34,7 @@ extern "C" {
 #endif
 
 #include "paxos.h"
+#include <sys/time.h>
 
 struct proposer;
 struct timeout_iterator;
@@ -45,7 +46,7 @@ int proposer_prepared_count(struct proposer* p);
 void proposer_set_instance_id(struct proposer* p, iid_t iid);
 
 // phase 1
-void proposer_prepare(struct proposer* p, paxos_prepare* out);
+void proposer_prepare(struct proposer* p, paxos_prepare* out, struct timeval* tv);
 int proposer_receive_promise(struct proposer* p, paxos_promise* ack,
 	paxos_prepare* out);
 

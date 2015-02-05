@@ -306,13 +306,13 @@ on_read(int fd, short event, void* arg)
 	struct peer* p = get_peer(peers, (struct sockaddr*)&addr);
 	assert(p != NULL);
 
-	int offset = 0;
+	
+	size_t offset = 0;
 	msgpack_unpacked msg;
 	msgpack_unpacked_init(&msg);
-	while (msgpack_unpack_next(&msg, buf, numbytes, &offset)) {
-		msgpack_unpack_paxos_message(&msg.data, &out);
-		dispatch_message(p, &out);
-	}
+	msgpack_unpack_next(&msg, buf, numbytes, &offset);
+	msgpack_unpack_paxos_message(&msg.data, &out);
+	dispatch_message(p, &out);
 	msgpack_unpacked_destroy(&msg);
 	
 //	printf("%d\n", 	ntohs(addr.sin_port));
@@ -321,9 +321,9 @@ on_read(int fd, short event, void* arg)
 
 //	printf("received something\n");
 	
-	// recv_paxos_message(buf, numbytes, &msg);
-	// dispatch_message(p, &msg);
-	// paxos_message_destroy(&msg);
+	// recv_paxos_message(buf, numbytes, &out);
+	// dispatch_message(p, &out);
+	// paxos_message_destroy(&out);
 }
 
 static void

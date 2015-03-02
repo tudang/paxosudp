@@ -343,10 +343,10 @@ on_read(int fd, short event, void* arg)
 		exit(1);
 	}
     
-	printf("%d\n", ntohs(addr.sin_port));
-	char buffer[20];
-	inet_ntop(AF_INET, &(addr.sin_addr), buffer, 20);
-	printf("%s\n", buffer);
+	// printf("%d\n", ntohs(addr.sin_port));
+	// char buffer[20];
+	// inet_ntop(AF_INET, &(addr.sin_addr), buffer, 20);
+	// printf("%s\n", buffer);
 	
 	struct peer* p = NULL;
 	if (!peers->use_mcast) {

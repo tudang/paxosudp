@@ -68,7 +68,11 @@ evlearner_check_holes(evutil_socket_t fd, short event, void *arg)
 	if (learner_has_holes(l->state, &msg.from, &msg.to)) {
 		if ((msg.to - msg.from) > chunks)
 			msg.to = msg.from + chunks;
-		peers_foreach_acceptor(l->acceptors, peer_send_repeat, &msg);
+		if (paxos_config.ip_multicast) {
+			struct peer* p = peers_get_peer(l->acceptors, 0);
+			peer_send_repeat(p, &msg);
+		} else
+			peers_foreach_acceptor(l->acceptors, peer_send_repeat, &msg);
 	}
 	event_add(l->hole_timer, &l->tv);
 }
@@ -124,29 +128,34 @@ evlearner_init_internal(struct evpaxos_config* config, struct peers* peers,
 }
 
 struct evlearner*
-evlearner_init(int id, const char* config_file, deliver_function f, void* arg, 
-	struct event_base* b)
+	evlearner_init(int id, const char* config_file, deliver_function f, void* arg, 
+struct event_base* b)
 {
 	struct evpaxos_config* c = evpaxos_config_read(config_file);
 	if (c == NULL) return NULL;
-        if (id < 0 || id >= MAX_N_OF_PROPOSERS) {
-                paxos_log_error("Invalid learner id: %d", id);
-                return NULL;
-        }   
-    
-	struct peers* peers = peers_new(b, c);
-        
-        int port = evpaxos_learner_listen_port(c, id);
-        int fd = peers_listen(peers, port);
-        if (fd == 0)
-                return NULL;	
+	if (id < 0 || id >= MAX_N_OF_PROPOSERS) {
+		paxos_log_error("Invalid learner id: %d", id);
+		return NULL;
+	}
+
+	struct peers* peers;
+	if (!paxos_config.ip_multicast) {
+		peers = peers_new(b, c);
+	} else {
+		peers = peers_mcast_new(b, c, evpaxos_proposer_ip(c, id));
+	}
+
+	int port = evpaxos_learner_listen_port(c, id);
+	int fd = peers_listen(peers, port);
+	if (fd == 0)
+		return NULL;	
 	peers_connect_to_acceptors(peers);
 	struct evlearner* l = evlearner_init_internal(c, peers, f, arg);
 
 	l->bind_fd = fd;
 
 	evpaxos_config_free(c);
-        //printf("evlearner_init\n");
+	//printf("evlearner_init\n");
 	return l;
 }
 

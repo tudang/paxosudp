@@ -62,6 +62,13 @@ peer_send_accepted(struct peer* p, void* arg)
 	}
 }
 
+static void
+evacceptor_mcast_proposers(struct evacceptor* acceptor, paxos_message* msg)
+{
+	struct peer* p = peers_get_client(acceptor->peers, 0);
+	send_paxos_message(p, msg);
+}
+
 /*
 	Received a prepare request (phase 1a).
 */
@@ -74,8 +81,11 @@ evacceptor_handle_prepare(struct peer* p, paxos_message* msg, void* arg)
 	paxos_log_debug("Handle prepare for iid %d ballot %d",
 		prepare->iid, prepare->ballot);
 	if (acceptor_receive_prepare(a->state, prepare, &out) != 0) {
-		send_paxos_message(p, &out);
-		paxos_message_destroy(&out);
+		if (p != NULL)
+			send_paxos_message(p, &out);
+		else {
+			evacceptor_mcast_proposers(a, &out);
+		}
 	}
 }
 
@@ -97,6 +107,8 @@ evacceptor_handle_accept(struct peer* p, paxos_message* msg, void* arg)
 			accepted_no_value.iid = out.u.accepted.iid;
 			accepted_no_value.ballot = out.u.accepted.ballot;
 			accepted_no_value.value.paxos_value_len = 0;
+			if (p == 0)
+				p = peers_get_client(a->peers, 0);
 			send_paxos_accepted(p, &accepted_no_value);
 			if (a->id == 0) {
 				peers_foreach_client(a->peers, peer_send_accepted, &out.u.accepted);
@@ -120,6 +132,8 @@ evacceptor_handle_repeat(struct peer* p, paxos_message* msg, void* arg)
 	paxos_log_debug("Handle repeat for iids %d-%d", repeat->from, repeat->to);
 	for (iid = repeat->from; iid <= repeat->to; ++iid) {
 		if (acceptor_receive_repeat(a->state, iid, &accepted)) {
+			if (p == NULL)
+				p = peers_get_client(a->peers, 1);
 			send_paxos_accepted(p, &accepted);
 			paxos_accepted_destroy(&accepted);
 		}
@@ -182,13 +196,20 @@ evacceptor_init(int id, const char* config_file, struct event_base* base)
 		return NULL;
 	}
 
-	struct peers* peers = peers_new(base, config);
+	struct peers* peers;
+	if (!paxos_config.ip_multicast) {
+		peers = peers_new(base, config);
+	} else {
+		peers = peers_mcast_new(base, config, evpaxos_acceptor_ip(config, id));
+	}
+	
 	int port = evpaxos_acceptor_listen_port(config, id);
 	if (peers_listen(peers, port) == 0)
 	  return NULL;
 	peers_create_clients(peers);
 	struct evacceptor* acceptor = evacceptor_init_internal(id, config, peers);
 	evpaxos_config_free(config);
+	
 	return acceptor;
 }
 
@@ -204,5 +225,6 @@ void
 evacceptor_free(struct evacceptor* a)
 {
 	peers_free(a->peers);
+
 	evacceptor_free_internal(a);
 }

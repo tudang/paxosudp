@@ -36,6 +36,7 @@
 struct paxos_config paxos_config =
 {
 	PAXOS_LOG_INFO,    /* verbosity */
+	0,                 /* ip_multicast */
 	2048,              /* learner_instances */
 	1,                 /* learner_catchup */
 	1,                 /* proposer_timeout */

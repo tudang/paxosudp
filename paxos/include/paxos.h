@@ -47,6 +47,7 @@ typedef uint32_t ballot_t;
 struct paxos_config
 { 
 	int verbosity;
+	int ip_multicast;
 	
 	/* Learner */
 	int learner_instances;

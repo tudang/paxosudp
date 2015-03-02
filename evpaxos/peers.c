@@ -54,6 +54,8 @@ struct peers
 	struct evconnlistener* listener;
 	// replace listener with a socket and event
 	int bind_fd;
+	int use_mcast;
+	char* mcast_addr;
 	struct event* recv_ev;
 	struct event_base* base;
 	struct evpaxos_config* config;
@@ -86,6 +88,17 @@ peers_new(struct event_base* base, struct evpaxos_config* config)
 	p->listener = NULL;
 	p->base = base;
 	p->config = config;
+	p->use_mcast = 0;
+	return p;
+}
+
+struct peers*
+peers_mcast_new(struct event_base* base, struct evpaxos_config* config,
+	char* mcast_address)
+{
+	struct peers* p = peers_new(base, config);
+	p->use_mcast = 1;
+	p->mcast_addr = mcast_address;
 	return p;
 }
 
@@ -129,6 +142,17 @@ peers_count(struct peers* p)
 	return p->peers_count;
 }
 
+struct peer*
+peers_get_client(struct peers* p, int i)
+{
+	return p->clients[i];
+}
+
+struct peer*
+peers_get_peer(struct peers* p, int i)
+{
+	return p->peers[i];
+}
 
 // create a simple socket instead of bufferevent
 static void
@@ -216,16 +240,32 @@ peers_listen(struct peers* p, int port)
 {
 	struct sockaddr_in addr;
 
+	p->bind_fd = socket(AF_INET, SOCK_DGRAM, 0);
+
 	/* listen on the given port at address 0.0.0.0 */
 	memset(&addr, 0, sizeof(struct sockaddr_in));
 	addr.sin_family = AF_INET;
-	addr.sin_addr.s_addr = htonl(0);
+	addr.sin_addr.s_addr = htonl(INADDR_ANY);
 	addr.sin_port = htons(port);
 	
-	/*TODO: provide error handling*/
-	p->bind_fd = socket(AF_INET, SOCK_DGRAM, 0);
 	evutil_make_socket_nonblocking(p->bind_fd);
 	bind(p->bind_fd, (struct sockaddr*)&addr, sizeof(struct sockaddr_in));
+		
+	if (p->use_mcast) {
+		// memset(&addr, 0, sizeof(struct sockaddr_in));
+		// addr.sin_family = AF_INET;
+		// addr.sin_addr.s_addr = htonl(p->mcast_addr);
+		// addr.sin_port = htons(port);
+		struct ip_mreq mreq;
+		mreq.imr_multiaddr.s_addr = inet_addr(p->mcast_addr);
+		mreq.imr_interface.s_addr = htonl(INADDR_ANY);
+		if (setsockopt(p->bind_fd, IPPROTO_IP, IP_ADD_MEMBERSHIP, &mreq, sizeof(mreq)) != 0) {
+			perror("setsockopt, setting IP_ADD_MEMBERSHIP");
+			return -1;
+		}
+	}
+	
+
 	
 	p->recv_ev = event_new(p->base, p->bind_fd, EV_READ|EV_PERSIST, on_read, p);
 	event_add(p->recv_ev, NULL);
@@ -251,11 +291,11 @@ peers_get_event_base(struct peers* p)
 }
 
 static void
-dispatch_message(struct peer* p, paxos_message* msg)
+dispatch_message(struct peers* peers, struct peer* p, paxos_message* msg)
 {
 	int i;
-	for (i = 0; i < p->peers->subs_count; ++i) {
-		struct subscription* sub = &p->peers->subs[i];
+	for (i = 0; i < peers->subs_count; ++i) {
+		struct subscription* sub = &peers->subs[i];
 		if (sub->type == msg->type)
 			sub->callback(p, msg, sub->arg);
 	}
@@ -265,12 +305,12 @@ dispatch_message(struct peer* p, paxos_message* msg)
 struct peer*
 match_addr(struct peer** peers, int count, struct sockaddr* addr)
 {
-  int i;
-  for (i=0; i<count; i++) {
-    if (evutil_sockaddr_cmp((struct sockaddr*)&(peers[i]->addr), addr, 1) == 0)
-	return peers[i];
-  }
-  return NULL;
+	int i;
+	for (i=0; i<count; i++) {
+		if (evutil_sockaddr_cmp((struct sockaddr*)&(peers[i]->addr), addr, 1) == 0)
+			return peers[i];
+	}
+	return NULL;
 }
 
 struct peer*
@@ -292,9 +332,9 @@ on_read(int fd, short event, void* arg)
 {
 	paxos_message out;
 	int numbytes;
-        struct sockaddr_in addr;
-        socklen_t socklen = sizeof(addr);
-        char buf[MAXBUFLEN];
+	struct sockaddr_in addr;
+	socklen_t socklen = sizeof(addr);
+	char buf[MAXBUFLEN];
 	struct peers* peers = (struct peers*)arg;
 
 	if ((numbytes = recvfrom(fd, buf, (MAXBUFLEN-1), 0,
@@ -303,27 +343,24 @@ on_read(int fd, short event, void* arg)
 		exit(1);
 	}
     
-	struct peer* p = get_peer(peers, (struct sockaddr*)&addr);
-	assert(p != NULL);
-
+	printf("%d\n", ntohs(addr.sin_port));
+	char buffer[20];
+	inet_ntop(AF_INET, &(addr.sin_addr), buffer, 20);
+	printf("%s\n", buffer);
+	
+	struct peer* p = NULL;
+	if (!peers->use_mcast) {
+		p = get_peer(peers, (struct sockaddr*)&addr);
+		assert(p != NULL);
+	}
 	
 	size_t offset = 0;
 	msgpack_unpacked msg;
 	msgpack_unpacked_init(&msg);
 	msgpack_unpack_next(&msg, buf, numbytes, &offset);
 	msgpack_unpack_paxos_message(&msg.data, &out);
-	dispatch_message(p, &out);
+	dispatch_message(peers, p, &out);
 	msgpack_unpacked_destroy(&msg);
-	
-//	printf("%d\n", 	ntohs(addr.sin_port));
-
-
-
-//	printf("received something\n");
-	
-	// recv_paxos_message(buf, numbytes, &out);
-	// dispatch_message(p, &out);
-	// paxos_message_destroy(&out);
 }
 
 static void

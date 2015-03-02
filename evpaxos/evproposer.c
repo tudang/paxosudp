@@ -214,7 +214,13 @@ evproposer_init(int id, const char* config_file, struct event_base* base)
 		return NULL;
 	}
 	
-	struct peers* peers = peers_new(base, config);
+	struct peers* peers;
+	if (!paxos_config.ip_multicast) {
+		peers = peers_new(base, config);
+	} else {
+		peers = peers_mcast_new(base, config, evpaxos_proposer_ip(config, id));
+	}
+
 	int port = evpaxos_proposer_listen_port(config, id);
 	int rv = peers_listen(peers, port);
 	if (rv == 0)

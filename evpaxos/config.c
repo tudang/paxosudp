@@ -72,6 +72,7 @@ struct option
 struct option options[] =
 {
 	{ "verbosity", &paxos_config.verbosity, option_verbosity },
+	{ "ip-multicast", &paxos_config.ip_multicast, option_boolean },
 	{ "learner-catch-up", &paxos_config.learner_catch_up, option_boolean },
 	{ "proposer-timeout", &paxos_config.proposer_timeout, option_integer },
 	{ "proposer-preexec-window", &paxos_config.proposer_preexec_window, option_integer },
@@ -169,6 +170,12 @@ evpaxos_learner_address(struct evpaxos_config* config, int i)
 	return address_to_sockaddr(&config->learners[i]);
 }
 
+char*
+evpaxos_learner_ip(struct evpaxos_config* config, int i)
+{
+	return config->learners[i].addr;
+}
+
 int
 evpaxos_learner_listen_port(struct evpaxos_config* config, int i)
 {
@@ -186,7 +193,13 @@ evpaxos_proposer_address(struct evpaxos_config* config, int i)
 {
 	return address_to_sockaddr(&config->proposers[i]);
 }
-	
+
+char*
+evpaxos_proposer_ip(struct evpaxos_config* config, int i)
+{
+	return config->proposers[i].addr;
+}
+
 int
 evpaxos_proposer_listen_port(struct evpaxos_config* config, int i)
 {
@@ -203,6 +216,12 @@ struct sockaddr_in
 evpaxos_acceptor_address(struct evpaxos_config* config, int i)
 {
 	return address_to_sockaddr(&config->acceptors[i]);
+}
+
+char*
+evpaxos_acceptor_ip(struct evpaxos_config* config, int i)
+{
+	return config->acceptors[i].addr;
 }
 
 int

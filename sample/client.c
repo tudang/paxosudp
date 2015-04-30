@@ -95,7 +95,7 @@ client_submit_value(struct client* c)
   struct client_value v;
   gettimeofday(&v.t, NULL);
   v.size = c->value_size;
-  random_string(v.value, v.size);
+  //random_string(v.value, v.size);
 
   int vsize = sizeof(size_t) + sizeof(struct timeval) + v.size;
 
@@ -122,7 +122,7 @@ on_deliver(unsigned iid, char* value, size_t size, void* arg)
 	long latency = timeval_diff(&v->t, &tv);
         long dt = tv.tv_sec - c->start_time.tv_sec;
         long ms = timeval_diff(&c->start_time, &tv);
-        if (dt >= 300) exit(0);
+        if (dt >= 60) exit(0);
 	fprintf(c->output, "%d,%ld,%ld,%ld\n", c->outstanding, v->size, ms, latency);
 	c->stats.delivered++;
 	c->stats.avg_latency = c->stats.avg_latency + ((latency - c->stats.avg_latency) / c->stats.delivered);

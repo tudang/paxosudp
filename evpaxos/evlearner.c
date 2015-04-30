@@ -142,7 +142,7 @@ struct event_base* b)
 	if (!paxos_config.ip_multicast) {
 		peers = peers_new(b, c);
 	} else {
-		peers = peers_mcast_new(b, c, evpaxos_proposer_ip(c, id));
+		peers = peers_mcast_new(b, c, evpaxos_learner_ip(c, id));
 	}
 
 	int port = evpaxos_learner_listen_port(c, id);

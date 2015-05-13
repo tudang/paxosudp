@@ -56,9 +56,10 @@ struct stats
 
 struct client
 {
+	int max_values;
 	int value_size;
 	int outstanding;
-        int socket;
+	int socket;
 	struct stats stats;
 	struct event_base* base;
 	struct event* stats_ev;
@@ -67,8 +68,8 @@ struct client
 	struct timeval start_time;
 	struct event* sig;
 	struct evlearner* learner;
-        struct sockaddr_in proposer;
-  FILE* output;
+	struct sockaddr_in proposer;
+	FILE* output;
 };
 
 static void
@@ -104,7 +105,9 @@ client_submit_value(struct client* c)
 
 
 // Returns t2 - t1 in microseconds.
-long timeval_diff(struct timeval* t1, struct timeval* t2) {
+static long
+timeval_diff(struct timeval* t1, struct timeval* t2)
+{
   long us;
   us = (t2->tv_sec - t1->tv_sec) * 1e6;
   if (us < 0) return 0;
@@ -120,12 +123,19 @@ on_deliver(unsigned iid, char* value, size_t size, void* arg)
 	struct timeval tv;
 	gettimeofday(&tv, NULL);
 	long latency = timeval_diff(&v->t, &tv);
-        long dt = tv.tv_sec - c->start_time.tv_sec;
-        long ms = timeval_diff(&c->start_time, &tv);
-        if (dt >= 60) exit(0);
-	fprintf(c->output, "%d,%ld,%ld,%ld\n", c->outstanding, v->size, ms, latency);
+	// fprintf(c->output, "%d,%ld,%ld,%ld\n", c->outstanding, v->size, ms, latency);
+	// long ms = timeval_diff(&c->start_time, &tv);
 	c->stats.delivered++;
 	c->stats.avg_latency = c->stats.avg_latency + ((latency - c->stats.avg_latency) / c->stats.delivered);
+
+
+	if (c->stats.delivered >= c->max_values) {
+		double mbits = (double)((c->stats.delivered*c->value_size*8)+(sizeof(struct timeval)+sizeof(size_t)*8)) / (1024*1024);
+		long dt = tv.tv_sec - c->start_time.tv_sec;
+		printf("Throughput %f\n", mbits/dt);
+		printf("Avg Latency %d\n", c->stats.avg_latency);
+		exit(0);
+	}
 	
 	client_submit_value(c);
 }
@@ -133,12 +143,12 @@ on_deliver(unsigned iid, char* value, size_t size, void* arg)
 static void
 on_stats(evutil_socket_t fd, short event, void *arg)
 {
-	struct client* c = arg;
-	double mbps = (double)((c->stats.delivered*c->value_size*8)+(sizeof(struct timeval)+sizeof(size_t)*8)) / (1024*1024);
-        printf("%d value/sec, %.2f Mbps, %d avg latency us\n", c->stats.delivered, mbps, c->stats.avg_latency);
-	c->stats.delivered = 0;
-	c->stats.avg_latency = 0;
-	event_add(c->stats_ev, &c->stats_interval);
+	// struct client* c = arg;
+	// double mbps = (double)((c->stats.delivered*c->value_size*8)+(sizeof(struct timeval)+sizeof(size_t)*8)) / (1024*1024);
+        // printf("%d value/sec, %.2f Mbps, %d avg latency us\n", c->stats.delivered, mbps, c->stats.avg_latency);
+	// c->stats.delivered = 0;
+	// c->stats.avg_latency = 0;
+	// event_add(c->stats_ev, &c->stats_interval);
 }
 
 static void
@@ -167,6 +177,7 @@ make_client(const char* config, int proposer_id, int outstanding, int value_size
 	memset(&c->stats, 0, sizeof(struct stats));
 	specify_proposer(c, config, proposer_id);
 	
+	c->max_values = 1000000;
 	c->value_size = value_size;
 	c->outstanding = outstanding;
 	
@@ -183,7 +194,7 @@ make_client(const char* config, int proposer_id, int outstanding, int value_size
 	evsignal_add(c->sig, NULL);
         char outname[20];
         sprintf (outname, "client%d-%d-%dB.csv", client_id, outstanding, value_size);
-	c->output = fopen(outname, "w");
+	// c->output = fopen(outname, "w");
 	return c;
 }
 
@@ -211,7 +222,7 @@ main(int argc, char const *argv[])
 	int proposer_id = 0;
 	int outstanding = 1;
 	int value_size = 64;
-        int client_id = 1;
+	int client_id = 1;
 	
 	if (argc < 2 || argc > 6)
 		usage(argv[0]);

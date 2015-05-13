@@ -130,9 +130,8 @@ on_deliver(unsigned iid, char* value, size_t size, void* arg)
 
 
 	if (c->stats.delivered >= c->max_values) {
-		double mbits = (double)((c->stats.delivered*c->value_size*8)+(sizeof(struct timeval)+sizeof(size_t)*8)) / (1024*1024);
 		long dt = tv.tv_sec - c->start_time.tv_sec;
-		printf("Throughput %f\n", mbits/dt);
+		printf("Throughput %d\n", c->stats.delivered/dt);
 		printf("Avg Latency %d\n", c->stats.avg_latency);
 		exit(0);
 	}

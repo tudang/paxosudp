@@ -39,7 +39,7 @@
 #include <stdio.h>
 
 #define MAX_VALUE_SIZE 64*1024
-
+#define END_VALUE 100000
 
 struct client_value
 {
@@ -79,6 +79,7 @@ handle_sigint(int sig, short ev, void* arg)
 	event_base_loopexit(base, NULL);
 }
 
+/*
 static void
 random_string(char *s, const int len)
 {
@@ -89,6 +90,7 @@ random_string(char *s, const int len)
 		s[i] = alphanum[rand() % (sizeof(alphanum) - 1)];
 	s[len-1] = 0;
 }
+*/
 
 static void
 client_submit_value(struct client* c)
@@ -131,7 +133,7 @@ on_deliver(unsigned iid, char* value, size_t size, void* arg)
 
 	if (c->stats.delivered >= c->max_values) {
 		long dt = tv.tv_sec - c->start_time.tv_sec;
-		printf("Throughput %d\n", c->stats.delivered/dt);
+		printf("Throughput %ld\n", c->stats.delivered/dt);
 		printf("Avg Latency %d\n", c->stats.avg_latency);
 		exit(0);
 	}
@@ -142,12 +144,12 @@ on_deliver(unsigned iid, char* value, size_t size, void* arg)
 static void
 on_stats(evutil_socket_t fd, short event, void *arg)
 {
-	// struct client* c = arg;
-	// double mbps = (double)((c->stats.delivered*c->value_size*8)+(sizeof(struct timeval)+sizeof(size_t)*8)) / (1024*1024);
-        // printf("%d value/sec, %.2f Mbps, %d avg latency us\n", c->stats.delivered, mbps, c->stats.avg_latency);
-	// c->stats.delivered = 0;
-	// c->stats.avg_latency = 0;
-	// event_add(c->stats_ev, &c->stats_interval);
+	struct client* c = arg;
+	double mbps = (double)((c->stats.delivered*c->value_size*8)+(sizeof(struct timeval)+sizeof(size_t)*8)) / 1E6;
+        printf("%d value/sec, %.2f Mbps, %d avg latency us\n", c->stats.delivered, mbps, c->stats.avg_latency);
+	c->stats.delivered = 0;
+	c->stats.avg_latency = 0;
+	event_add(c->stats_ev, &c->stats_interval);
 }
 
 static void
@@ -161,7 +163,6 @@ submit_initial_values(struct client* c)
 static void
 specify_proposer(struct client* c, const char* config, int proposer_id)
 {
-	int sockfd;
 	struct evpaxos_config* conf = evpaxos_config_read(config);
         c->proposer =  evpaxos_proposer_address(conf, proposer_id);
 }
@@ -176,13 +177,14 @@ make_client(const char* config, int proposer_id, int outstanding, int value_size
 	memset(&c->stats, 0, sizeof(struct stats));
 	specify_proposer(c, config, proposer_id);
 	
-	c->max_values = 1000000;
+	c->max_values = END_VALUE;
 	c->value_size = value_size;
 	c->outstanding = outstanding;
 	
 	gettimeofday(&c->start_time, NULL); 
         c->stats_interval = (struct timeval){1, 0};
         c->stats_ev = evtimer_new(c->base, on_stats, c);
+
 	event_add(c->stats_ev, &c->stats_interval);
 	
 	paxos_config.learner_catch_up = 0;

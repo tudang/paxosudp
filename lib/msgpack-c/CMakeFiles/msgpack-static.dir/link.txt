@@ -1,0 +1,2 @@
+/usr/bin/ar cr libmsgpack.a  CMakeFiles/msgpack-static.dir/src/object.cpp.o CMakeFiles/msgpack-static.dir/src/unpack.c.o CMakeFiles/msgpack-static.dir/src/objectc.c.o CMakeFiles/msgpack-static.dir/src/version.c.o CMakeFiles/msgpack-static.dir/src/vrefbuffer.c.o CMakeFiles/msgpack-static.dir/src/zone.c.o
+/usr/bin/ranlib libmsgpack.a

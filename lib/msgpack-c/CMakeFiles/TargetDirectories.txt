@@ -1,0 +1,5 @@
+/home/danghu/paxosudp/lib/msgpack-c/CMakeFiles/doxygen.dir
+/home/danghu/paxosudp/lib/msgpack-c/CMakeFiles/doxygen_c.dir
+/home/danghu/paxosudp/lib/msgpack-c/CMakeFiles/doxygen_cpp.dir
+/home/danghu/paxosudp/lib/msgpack-c/CMakeFiles/msgpack.dir
+/home/danghu/paxosudp/lib/msgpack-c/CMakeFiles/msgpack-static.dir

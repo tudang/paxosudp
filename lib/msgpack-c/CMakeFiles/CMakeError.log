@@ -1,0 +1,87 @@
+Determining if the pthread_create exist failed with the following output:
+Change Dir: /home/danghu/paxosudp/lib/msgpack-c/CMakeFiles/CMakeTmp
+
+Run Build Command:"/usr/bin/gmake" "cmTryCompileExec1461788548/fast"
+/usr/bin/gmake -f CMakeFiles/cmTryCompileExec1461788548.dir/build.make CMakeFiles/cmTryCompileExec1461788548.dir/build
+gmake[1]: Entering directory '/home/danghu/paxosudp/lib/msgpack-c/CMakeFiles/CMakeTmp'
+/usr/bin/cmake -E cmake_progress_report /home/danghu/paxosudp/lib/msgpack-c/CMakeFiles/CMakeTmp/CMakeFiles 1
+Building C object CMakeFiles/cmTryCompileExec1461788548.dir/CheckSymbolExists.c.o
+/usr/bin/cc    -o CMakeFiles/cmTryCompileExec1461788548.dir/CheckSymbolExists.c.o   -c /home/danghu/paxosudp/lib/msgpack-c/CMakeFiles/CMakeTmp/CheckSymbolExists.c
+Linking C executable cmTryCompileExec1461788548
+/usr/bin/cmake -E cmake_link_script CMakeFiles/cmTryCompileExec1461788548.dir/link.txt --verbose=1
+/usr/bin/cc       CMakeFiles/cmTryCompileExec1461788548.dir/CheckSymbolExists.c.o  -o cmTryCompileExec1461788548 -rdynamic 
+CMakeFiles/cmTryCompileExec1461788548.dir/CheckSymbolExists.c.o: In function `main':
+CheckSymbolExists.c:(.text+0x16): undefined reference to `pthread_create'
+collect2: error: ld returned 1 exit status
+CMakeFiles/cmTryCompileExec1461788548.dir/build.make:88: recipe for target 'cmTryCompileExec1461788548' failed
+gmake[1]: *** [cmTryCompileExec1461788548] Error 1
+gmake[1]: Leaving directory '/home/danghu/paxosudp/lib/msgpack-c/CMakeFiles/CMakeTmp'
+Makefile:118: recipe for target 'cmTryCompileExec1461788548/fast' failed
+gmake: *** [cmTryCompileExec1461788548/fast] Error 2
+
+File /home/danghu/paxosudp/lib/msgpack-c/CMakeFiles/CMakeTmp/CheckSymbolExists.c:
+/* */
+#include <pthread.h>
+
+int main(int argc, char** argv)
+{
+  (void)argv;
+#ifndef pthread_create
+  return ((int*)(&pthread_create))[argc];
+#else
+  (void)argc;
+  return 0;
+#endif
+}
+
+Determining if the function pthread_create exists in the pthreads failed with the following output:
+Change Dir: /home/danghu/paxosudp/lib/msgpack-c/CMakeFiles/CMakeTmp
+
+Run Build Command:"/usr/bin/gmake" "cmTryCompileExec1420479162/fast"
+/usr/bin/gmake -f CMakeFiles/cmTryCompileExec1420479162.dir/build.make CMakeFiles/cmTryCompileExec1420479162.dir/build
+gmake[1]: Entering directory '/home/danghu/paxosudp/lib/msgpack-c/CMakeFiles/CMakeTmp'
+/usr/bin/cmake -E cmake_progress_report /home/danghu/paxosudp/lib/msgpack-c/CMakeFiles/CMakeTmp/CMakeFiles 1
+Building C object CMakeFiles/cmTryCompileExec1420479162.dir/CheckFunctionExists.c.o
+/usr/bin/cc   -DCHECK_FUNCTION_EXISTS=pthread_create   -o CMakeFiles/cmTryCompileExec1420479162.dir/CheckFunctionExists.c.o   -c /usr/share/cmake/Modules/CheckFunctionExists.c
+Linking C executable cmTryCompileExec1420479162
+/usr/bin/cmake -E cmake_link_script CMakeFiles/cmTryCompileExec1420479162.dir/link.txt --verbose=1
+/usr/bin/cc   -DCHECK_FUNCTION_EXISTS=pthread_create    CMakeFiles/cmTryCompileExec1420479162.dir/CheckFunctionExists.c.o  -o cmTryCompileExec1420479162 -rdynamic -lpthreads 
+/usr/bin/ld: cannot find -lpthreads
+collect2: error: ld returned 1 exit status
+CMakeFiles/cmTryCompileExec1420479162.dir/build.make:88: recipe for target 'cmTryCompileExec1420479162' failed
+gmake[1]: *** [cmTryCompileExec1420479162] Error 1
+gmake[1]: Leaving directory '/home/danghu/paxosudp/lib/msgpack-c/CMakeFiles/CMakeTmp'
+Makefile:118: recipe for target 'cmTryCompileExec1420479162/fast' failed
+gmake: *** [cmTryCompileExec1420479162/fast] Error 2
+
+
+Performing C++ SOURCE FILE Test MSGPACK_ENABLE_GCC_CXX_ATOMIC failed with the following output:
+Change Dir: /home/danghu/paxosudp/lib/msgpack-c/CMakeFiles/CMakeTmp
+
+Run Build Command:"/usr/bin/gmake" "cmTryCompileExec3170200990/fast"
+/usr/bin/gmake -f CMakeFiles/cmTryCompileExec3170200990.dir/build.make CMakeFiles/cmTryCompileExec3170200990.dir/build
+gmake[1]: Entering directory '/home/danghu/paxosudp/lib/msgpack-c/CMakeFiles/CMakeTmp'
+/usr/bin/cmake -E cmake_progress_report /home/danghu/paxosudp/lib/msgpack-c/CMakeFiles/CMakeTmp/CMakeFiles 1
+Building CXX object CMakeFiles/cmTryCompileExec3170200990.dir/src.cxx.o
+/usr/bin/c++    -DMSGPACK_ENABLE_GCC_CXX_ATOMIC   -o CMakeFiles/cmTryCompileExec3170200990.dir/src.cxx.o -c /home/danghu/paxosudp/lib/msgpack-c/CMakeFiles/CMakeTmp/src.cxx
+/home/danghu/paxosudp/lib/msgpack-c/CMakeFiles/CMakeTmp/src.cxx:2:28: fatal error: bits/atomicity.h: No such file or directory
+ #include <bits/atomicity.h>
+                            ^
+compilation terminated.
+CMakeFiles/cmTryCompileExec3170200990.dir/build.make:57: recipe for target 'CMakeFiles/cmTryCompileExec3170200990.dir/src.cxx.o' failed
+gmake[1]: *** [CMakeFiles/cmTryCompileExec3170200990.dir/src.cxx.o] Error 1
+gmake[1]: Leaving directory '/home/danghu/paxosudp/lib/msgpack-c/CMakeFiles/CMakeTmp'
+Makefile:118: recipe for target 'cmTryCompileExec3170200990/fast' failed
+gmake: *** [cmTryCompileExec3170200990/fast] Error 2
+
+Source file was:
+
+#include <bits/atomicity.h>
+int atomic_sub(int i) { return __gnu_cxx::__exchange_and_add(&i, -1) - 1; }
+int atomic_add(int i) { return __gnu_cxx::__exchange_and_add(&i, 1) + 1; }
+int main(int argc, char * argv[])
+{
+	atomic_sub(1);
+	atomic_add(1);
+}
+

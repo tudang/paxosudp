@@ -1,0 +1,1 @@
+/usr/bin/c++  -fPIC    -shared -Wl,-soname,libmsgpack.so.3 -o libmsgpack.so.3.0.0 CMakeFiles/msgpack.dir/src/object.cpp.o CMakeFiles/msgpack.dir/src/unpack.c.o CMakeFiles/msgpack.dir/src/objectc.c.o CMakeFiles/msgpack.dir/src/version.c.o CMakeFiles/msgpack.dir/src/vrefbuffer.c.o CMakeFiles/msgpack.dir/src/zone.c.o 

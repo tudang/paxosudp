@@ -1,0 +1,10 @@
+prefix=/home/danghu/paxosudp/dependencies
+exec_prefix=${prefix}
+libdir=${exec_prefix}/lib
+includedir=${prefix}/include
+
+Name: MessagePack
+Description: Binary-based efficient object serialization library
+Version: 0.5.9
+Libs: -L${libdir} -lmsgpack
+Cflags: -I${includedir}

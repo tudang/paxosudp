@@ -1,59 +1,30 @@
-# LibPaxos
-
-This is LibPaxos3! A complete rewrite of [LibPaxos2][1].
-LibPaxos3 has been improved in the following aspects:
-
-- Doesn't make use of multicast
-- Has a cleaner design
-- Has a better build system based on CMake
-- Comes with unit tests
-
-LibPaxos3 is divided in two libraries: libpaxos and libevpaxos. 
-
-Libpaxos (see ```libpaxos/paxos```) implements the core of the Paxos consensus 
-protocol, and is not cluttered with network specific code. That is, libpaxos 
-does not depend on any particular networking library.
-
-Libevpaxos (see ```libpaxos/evpaxos```) is the actual networked Paxos 
-implementation. This library is built on top of the libpaxos and [libevent][2].
-
 ## Building
 
-These are the basic steps required to get and compile LibPaxos3
+Simple,
 
-	git clone https://bitbucket.org/sciascid/libpaxos.git
-	mkdir libpaxos/build
-	cd libpaxos/build
-	cmake ..
-	make
-
-LibPaxos3 depends on [libevent][2] and [msgpack][9]. By default, LibPaxos3 uses
-an in-memory storage, with support for storage backends based on 
-[Berkeley DB][3], and [LMDB][10] (see ```paxos.conf``` and build options below).
-
-LibPaxos3 should compile on Linux and OS X.
-
-### Useful build options
-
-You pass options to cmake as follows: ```cmake -DOPTION=VALUE```
-
-- ```BDB_ROOT=PATH```  - point it to your installation of Berkeley DB
-- ```LMDB_ROOT=PATH```  - point it to your installation of LMDB
-- ```LIBEVENT_ROOT=PATH``` -  point it to your installation of Libevent
-- ```MSGPACK_ROOT=PATH``` - point it to your installation of MessagePack
+```
+./setup.sh
+```
 
 ## Running the examples
 
-	cd libpaxos/build
-	./sample/acceptor 0 ../paxos.conf > /dev/null &
-	./sample/acceptor 1 ../paxos.conf > /dev/null &
-	./sample/proposer 0 ../paxos.conf > /dev/null &
-	./sample/learner ../paxos.conf > learner.txt &
-	./sample/client 127.0.0.1:5550 1
+REMEMBER: Match IP address in udppaxos.conf and demo.cfg
+e.g, 
+in udppaxos.conf
+acceptor 0 192.168.3.70 8800
+
+in demo.cfg
+[acceptor]
+addr1=192.168.3.70
+```
+python run_demo.py
+cat *.dat
+```
+
 
 ## Configuration
 
-See ```paxos.conf``` for a sample configuration file.
+See ```udppaxos.conf``` for a sample configuration file.
 
 ##  Unit tests
 

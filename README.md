@@ -9,13 +9,20 @@ Simple,
 ## Running the examples
 
 REMEMBER: Match IP address in udppaxos.conf and demo.cfg
-e.g, 
-in udppaxos.conf
-acceptor 0 192.168.3.70 8800
 
+e.g, 
+
+in udppaxos.conf
+```
+acceptor 0 192.168.3.70 8800
+```
 in demo.cfg
+```
 [acceptor]
 addr1=192.168.3.70
+```
+
+The demo will run for 2 seconds, and the output to file {client_ip}.dat
 ```
 python run_demo.py
 cat *.dat
